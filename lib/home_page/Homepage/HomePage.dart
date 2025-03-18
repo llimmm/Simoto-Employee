@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../login_page/Loginpage/Loginpage.dart';
+import 'package:kliktoko/login_page/Loginpage/LoginPages.dart';
+import '../../login_page/loginComponents/LoginBottomSheet.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -13,7 +14,7 @@ class HomePage extends StatelessWidget {
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const Loginpage()),
+              MaterialPageRoute(builder: (context) => const LoginPage()),
             );
           },
         ),

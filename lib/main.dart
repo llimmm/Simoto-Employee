@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'start.dart';
+import 'package:kliktoko/login_page/Loginpage/LoginPages.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const StartPage(),
+      home: const LoginPage(),
       debugShowCheckedModeBanner: false,
     );
   }

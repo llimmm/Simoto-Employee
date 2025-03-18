@@ -1,37 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'login_page/Loginpage/Loginpage.dart';
+import '../loginComponents/LoginBottomSheet.dart';
 
-class StartPage extends StatefulWidget {
-  const StartPage({Key? key}) : super(key: key);
+class LoginPage extends StatefulWidget {
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
-  State<StartPage> createState() => _StartPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _StartPageState extends State<StartPage> {
+class _LoginPageState extends State<LoginPage> {
   double _dragValue = 0.0;
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
     setState(() {
-      _dragValue += details.primaryDelta! / 235;
+      _dragValue += details.primaryDelta! / 150; // Increased sensitivity
       _dragValue = _dragValue.clamp(0.0, 1.0);
     });
   }
 
   void _onHorizontalDragEnd(DragEndDetails details) {
-    if (_dragValue > 0.9) {
+    if (_dragValue > 0.6) {
+      // Reduced threshold for activation
+      setState(() {
+        _dragValue = 1.0;
+      });
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => const LoginBottomSheet(),
+      );
+
       Future.delayed(const Duration(milliseconds: 300), () {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          transitionAnimationController: AnimationController(
-            vsync: Navigator.of(context),
-            duration: const Duration(milliseconds: 600), // Animasi lebih pelan
-          ),
-          builder: (context) => const Loginpage(),
-        );
+        // Reduced delay
+        setState(() {
+          _dragValue = 0.0;
+        });
       });
     } else {
       setState(() {
@@ -88,7 +94,7 @@ class _StartPageState extends State<StartPage> {
               ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 80), // Reduced space before the swipe button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: GestureDetector(
@@ -105,7 +111,8 @@ class _StartPageState extends State<StartPage> {
                 child: Stack(
                   children: [
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
+                      duration:
+                          const Duration(milliseconds: 50), // Faster animation
                       width: 300 * _dragValue,
                       height: 60,
                       decoration: BoxDecoration(
@@ -114,7 +121,8 @@ class _StartPageState extends State<StartPage> {
                       ),
                     ),
                     AnimatedPositioned(
-                      duration: const Duration(milliseconds: 100),
+                      duration:
+                          const Duration(milliseconds: 50), // Faster animation
                       left: 5 + (_dragValue * 235),
                       top: 5,
                       child: Container(
@@ -126,8 +134,8 @@ class _StartPageState extends State<StartPage> {
                         ),
                         child: SvgPicture.asset(
                           'assets/images/kons.svg',
-                          width: 50,
-                          height: 50,
+                          width: 10,
+                          height: 10,
                         ),
                       ),
                     ),
