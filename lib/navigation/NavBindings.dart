@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:kliktoko/navigation/NavController.dart';
+import 'NavController.dart';
 
 class NavBindings extends Bindings {
   @override

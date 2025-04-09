@@ -7,7 +7,7 @@ import 'package:kliktoko/profile_page/ProfilePage/ProfilePage.dart';
 class NavController extends GetxController {
   static NavController get to => Get.find();
   final _selectedIndex = 0.obs;
-  
+
   final List<Widget> pages = [
     const HomePage(key: ValueKey("HomePage")),
     const GudangPage(key: ValueKey("GudangPage")),

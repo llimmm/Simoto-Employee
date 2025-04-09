@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kliktoko/navigation/NavController.dart';
+import 'NavController.dart';
 
 class FloatingBottomNavBar extends StatelessWidget {
   const FloatingBottomNavBar({Key? key}) : super(key: key);
