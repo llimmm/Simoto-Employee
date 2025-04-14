@@ -17,21 +17,16 @@ class FloatingBottomNavBar extends StatelessWidget {
 
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // Navigation bar dimensions - adjust these values to change size
-    // Width is relative to screen size (percentage of screen width)
-    final navBarWidth =
-        screenWidth * 0.44 * 1.35; // Modify this value to adjust width
-
-    // Height is a fixed value in logical pixels
-    final navBarHeight = 55.0 * 1.35; // Modify this value to adjust height
-
-    // Border radius - controls the roundness of the navigation bar corners
-    final borderRadius =
-        30.0 * 1.35; // Modify this value to adjust corner roundness
+    // Navigation bar dimensions
+    final navBarWidth = screenWidth * 0.85;
+    final navBarHeight = 70.0;
 
     return Scaffold(
       // Light mint green background as shown in the reference image
       backgroundColor: const Color(0xFFF1F9E9),
+
+      // Use resizeToAvoidBottomInset: false to prevent resizing when keyboard appears
+      resizeToAvoidBottomInset: false,
 
       body: Stack(
         children: [
@@ -41,61 +36,123 @@ class FloatingBottomNavBar extends StatelessWidget {
                 children: controller.pages,
               )),
 
-          // Floating navigation bar
-          Positioned(
-            bottom: 47.0,
-            left: (screenWidth - navBarWidth) / 2,
+          // Floating navigation bar - now attached to a SafeArea
+          SafeArea(
+            // Set top to false to only provide safe area at the bottom
+            top: false,
+            bottom: true,
             child: Container(
-              width: navBarWidth,
-              height: navBarHeight,
-              decoration: BoxDecoration(
-                color: const Color(0xFF151515), // Dark background for contrast
-                borderRadius: BorderRadius.circular(
-                    borderRadius), // Customizable border radius
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 3,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              alignment: Alignment.bottomCenter,
+              padding: const EdgeInsets.only(bottom: 40.0),
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
                 children: [
-                  // Home button
-                  _buildNavButton(
-                    index: 0,
-                    controller: controller,
-                    selectedColor: const Color(0xFFB5DE42),
-                    unselectedColor: const Color(0xFF303030),
-                    icon: (isSelected) => _buildHomeIcon(isSelected),
+                  // Custom shaped navigation bar with precise notch
+                  CustomPaint(
+                    size: Size(navBarWidth, navBarHeight),
+                    painter: NavBarPainter(
+                      color: const Color(0xFF282828),
+                    ),
                   ),
 
-                  // Minimal spacing between buttons
-                  const SizedBox(width: 11),
+                  // Navigation buttons - positioned top-center
+                  SizedBox(
+                    width: navBarWidth,
+                    height: navBarHeight,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10.0), // Even vertical padding
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.center, // Center alignment
+                        children: [
+                          // Home button
+                          _buildNavButton(
+                            index: 0,
+                            controller: controller,
+                            isActive: true,
+                            icon: _buildHomeIcon,
+                          ),
 
-                  // Inventory button
-                  _buildNavButton(
-                    index: 1,
-                    controller: controller,
-                    selectedColor: const Color(0xFFB5DE42),
-                    unselectedColor: const Color(0xFF303030),
-                    icon: (isSelected) => _buildInventoryIcon(isSelected),
+                          // Inventory button
+                          _buildNavButton(
+                            index: 1,
+                            controller: controller,
+                            isActive: true,
+                            icon: _buildInventoryIcon,
+                          ),
+
+                          // Empty space for the add button
+                          const SizedBox(width: 60),
+
+                          // Calendar button
+                          _buildNavButton(
+                            index: 3,
+                            controller: controller,
+                            isActive: true,
+                            icon: _buildCalendarIcon,
+                          ),
+
+                          // Profile button
+                          _buildNavButton(
+                            index: 4,
+                            controller: controller,
+                            isActive: true,
+                            icon: _buildProfileIcon,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
 
-                  // Minimal spacing between buttons
-                  const SizedBox(width: 11),
-
-                  // Profile button
-                  _buildNavButton(
-                    index: 2,
-                    controller: controller,
-                    selectedColor: const Color(0xFFB5DE42),
-                    unselectedColor: const Color(0xFF303030),
-                    icon: (isSelected) => _buildProfileIcon(isSelected),
+                  // Center floating add button
+                  Positioned(
+                    top: -27.0,
+                    child: GestureDetector(
+                      onTap: () => controller.handleAddButton(),
+                      child: Container(
+                        width: 54.0,
+                        height: 54.0,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFB5DE42),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color:
+                                const Color(0xFF000000), // Black outer border
+                            width: 2.0,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 6,
+                              spreadRadius: 0,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        // Inner container to create the double ring effect
+                        child: Container(
+                          margin: const EdgeInsets.all(2.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFB5DE42),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.black, // Black inner border too
+                              width: 2.0,
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.add,
+                              color: const Color(0xFF282828),
+                              size: 28.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -110,26 +167,35 @@ class FloatingBottomNavBar extends StatelessWidget {
   Widget _buildNavButton({
     required int index,
     required NavController controller,
-    required Color selectedColor,
-    required Color unselectedColor,
-    required Widget Function(bool isSelected) icon,
+    required bool isActive,
+    required Widget Function(bool isSelected, bool isActive) icon,
   }) {
     return Obx(() {
       final isSelected = controller.selectedIndex == index;
-      const double buttonSize = 40.0 * 1.35;
+      final buttonSize = 50.0; // Keeping the previous larger size
 
       return GestureDetector(
         onTap: () => controller.changePage(index),
-        behavior: HitTestBehavior.translucent,
         child: Container(
           width: buttonSize,
           height: buttonSize,
           decoration: BoxDecoration(
-            color: isSelected ? selectedColor : unselectedColor,
+            color:
+                isSelected ? const Color(0xFFB5DE42) : const Color(0xFF303030),
             shape: BoxShape.circle,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Center(
-            child: icon(isSelected),
+            child: icon(isSelected, isActive),
           ),
         ),
       );
@@ -137,50 +203,57 @@ class FloatingBottomNavBar extends StatelessWidget {
   }
 
   // Home icon implementation
-  Widget _buildHomeIcon(bool isSelected) {
-    return SizedBox(
-      width: 21.0 * 1.35,
-      height: 21.0 * 1.35,
-      child: Icon(
-        Icons.home,
-        size: 21.0 * 1.35,
-        color: isSelected ? Colors.black : Colors.white,
-      ),
+  Widget _buildHomeIcon(bool isSelected, bool isActive) {
+    if (!isActive) return const SizedBox();
+
+    return Icon(
+      Icons.home,
+      color: isSelected ? const Color(0xFF282828) : Colors.white,
+      size: 28.0, // Keeping the previous larger size
     );
   }
 
-  // Inventory icon implementation with selection state
-  Widget _buildInventoryIcon(bool isSelected) {
-    return SizedBox(
-      width: 18.0 * 1.35,
-      height: 18.0 * 1.35,
-      child: Icon(
-        Icons.inventory_2_outlined,
-        color: isSelected ? Colors.black : Colors.white,
-        size: 18.0 * 1.35,
-      ),
+  // Inventory/box icon implementation
+  Widget _buildInventoryIcon(bool isSelected, bool isActive) {
+    if (!isActive) return const SizedBox();
+
+    return Icon(
+      Icons.inventory_2_outlined,
+      color: isSelected ? const Color(0xFF282828) : Colors.white,
+      size: 28.0, // Keeping the previous larger size
     );
   }
 
-  // Profile icon implementation with user icon and selection state
-  Widget _buildProfileIcon(bool isSelected) {
-    return SizedBox(
-      width: 18.0 * 1.35,
-      height: 18.0 * 1.35,
-      child: Icon(
-        Icons.person_outline,
-        color: isSelected ? Colors.black : Colors.white,
-        size: 18.0 * 1.35,
-      ),
+  // Calendar icon implementation
+  Widget _buildCalendarIcon(bool isSelected, bool isActive) {
+    if (!isActive) return const SizedBox();
+
+    return Icon(
+      Icons.calendar_today_outlined,
+      color: isSelected ? const Color(0xFF282828) : Colors.white,
+      size: 26.0, // Keeping the previous larger size
+    );
+  }
+
+  // Profile icon implementation
+  Widget _buildProfileIcon(bool isSelected, bool isActive) {
+    if (!isActive) return const SizedBox();
+
+    return Icon(
+      Icons.person_outline,
+      color: isSelected ? const Color(0xFF282828) : Colors.white,
+      size: 28.0, // Keeping the previous larger size
     );
   }
 }
 
-// Custom painter for home icon - implemented inline for simplicity
-class _HomeIconPainter extends CustomPainter {
+// Custom painter for drawing the navigation bar with a notch for the add button
+class NavBarPainter extends CustomPainter {
   final Color color;
 
-  const _HomeIconPainter({required this.color});
+  NavBarPainter({
+    required this.color,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -188,29 +261,77 @@ class _HomeIconPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
+    final double cornerRadius = 35.0;
+
+    // Create path for the navigation bar with exact notch shape
     final path = Path();
-    // Draw house shape exactly matching the design
-    path.moveTo(size.width * 0.5, 0); // Top center
-    path.lineTo(0, size.height * 0.5); // Left middle
-    path.lineTo(size.width * 0.2, size.height * 0.5); // Indent for door
-    path.lineTo(size.width * 0.2, size.height); // Left side of door
-    path.lineTo(size.width * 0.4, size.height); // Bottom left of door
-    path.lineTo(size.width * 0.4, size.height * 0.7); // Top left of door
-    path.lineTo(size.width * 0.6, size.height * 0.7); // Top right of door
-    path.lineTo(size.width * 0.6, size.height); // Right side of door
-    path.lineTo(size.width * 0.8, size.height); // Bottom right of door
-    path.lineTo(size.width * 0.8, size.height * 0.5); // Right indent for door
-    path.lineTo(size.width, size.height * 0.5); // Right middle
+
+    // Start from the top-left with rounded corner
+    path.moveTo(cornerRadius, 0);
+
+    // Draw top edge to notch start
+    path.lineTo(size.width / 2 - 33, 0); // Slightly wider notch
+
+    // Draw precise notch curve - exactly as shown in the reference
+    // This is a deeper, more defined semicircular notch
+    path.arcToPoint(
+      Offset(size.width / 2 + 33, 0), // Slightly wider notch
+      radius: Radius.circular(33), // Slightly wider notch
+      clockwise: false,
+    );
+
+    // Draw top edge from notch to top-right corner
+    path.lineTo(size.width - cornerRadius, 0);
+
+    // Draw top-right rounded corner
+    path.arcToPoint(
+      Offset(size.width, cornerRadius),
+      radius: Radius.circular(cornerRadius),
+      clockwise: true,
+    );
+
+    // Draw right edge
+    path.lineTo(size.width, size.height - cornerRadius);
+
+    // Draw bottom-right rounded corner
+    path.arcToPoint(
+      Offset(size.width - cornerRadius, size.height),
+      radius: Radius.circular(cornerRadius),
+      clockwise: true,
+    );
+
+    // Draw bottom edge
+    path.lineTo(cornerRadius, size.height);
+
+    // Draw bottom-left rounded corner
+    path.arcToPoint(
+      Offset(0, size.height - cornerRadius),
+      radius: Radius.circular(cornerRadius),
+      clockwise: true,
+    );
+
+    // Draw left edge
+    path.lineTo(0, cornerRadius);
+
+    // Draw top-left rounded corner
+    path.arcToPoint(
+      Offset(cornerRadius, 0),
+      radius: Radius.circular(cornerRadius),
+      clockwise: true,
+    );
+
+    // Close the path
     path.close();
 
+    // Add shadow for floating effect
+    canvas.drawShadow(path, Colors.black.withOpacity(0.3), 8, true);
+
+    // Draw the navigation bar
     canvas.drawPath(path, paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    if (oldDelegate is _HomeIconPainter) {
-      return oldDelegate.color != color;
-    }
     return true;
   }
 }

@@ -8,4 +8,3 @@ class ProfileController extends GetxController {
     Get.offAllNamed('/login');
   }
 }
-  
