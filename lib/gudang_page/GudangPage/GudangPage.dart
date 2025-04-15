@@ -1,10 +1,164 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../GudangControllers/GudangController.dart';
 
-class GudangPage extends StatelessWidget {
+class GudangPage extends StatefulWidget {
   const GudangPage({Key? key}) : super(key: key);
 
   @override
+  State<GudangPage> createState() => _GudangPageState();
+}
+
+class _GudangPageState extends State<GudangPage> {
+  final GudangController controller = Get.put(GudangController());
+
+  // Local state for the filter options
+  final List<String> filterOptions = [
+    'All',
+    'New Arrival', 
+    'XL Size',
+    'L Size',
+    'M Size'
+  ];
+
+  // Green color constant
+  final Color primaryGreen = Color(0xFFA9CD47);
+
+  // Track if the dropdown menu is open
+  OverlayEntry? _overlayEntry;
+  bool isDropdownVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Subscribe to the controller's dropdown close signal
+    ever(controller.shouldCloseDropdown, (shouldClose) {
+      if (shouldClose && isDropdownVisible) {
+        _removeOverlay();
+        controller.resetDropdownFlag();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _removeOverlay();
+    super.dispose();
+  }
+
+  void _removeOverlay() {
+    if (_overlayEntry != null) {
+      try {
+        _overlayEntry?.remove();
+      } catch (e) {
+        // Handle any errors during removal
+        print('Error removing overlay: $e');
+      }
+      _overlayEntry = null;
+      isDropdownVisible = false;
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  void _showDropdownMenu(BuildContext context, GlobalKey buttonKey) {
+    if (isDropdownVisible) {
+      _removeOverlay();
+      return;
+    }
+
+    // Get the render box of the button
+    if (!buttonKey.currentContext!.findRenderObject()!.attached) {
+      return; // Skip if render object is not attached
+    }
+
+    final RenderBox renderBox =
+        buttonKey.currentContext!.findRenderObject() as RenderBox;
+    final Size size = renderBox.size;
+    final Offset position = renderBox.localToGlobal(Offset.zero);
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          // Invisible layer to detect taps outside
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _removeOverlay,
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+          ),
+          // Your existing dropdown
+          Positioned(
+            left: position.dx,
+            top: position.dy + size.height + 5.0,
+            width: 150,
+            child: Material(
+              elevation: 4.0,
+              borderRadius: BorderRadius.circular(8),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: filterOptions.map((option) {
+                    return Material(
+                      color: controller.selectedFilter.value == option
+                          ? primaryGreen
+                          : Colors.white,
+                      child: InkWell(
+                        onTap: () {
+                          controller.updateFilter(option);
+                          _removeOverlay();
+                          if (mounted) setState(() {});
+                        },
+                        hoverColor: primaryGreen.withOpacity(0.2),
+                        splashColor: primaryGreen.withOpacity(0.3),
+                        highlightColor: primaryGreen.withOpacity(0.1),
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          child: Text(
+                            option,
+                            style: TextStyle(
+                              color: controller.selectedFilter.value == option
+                                  ? Colors.black
+                                  : Colors.black,
+                              fontSize: 14,
+                              fontWeight: controller.selectedFilter.value == option
+                                  ? FontWeight.w500
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+    isDropdownVisible = true;
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final filterButtonKey = GlobalKey();
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -13,7 +167,6 @@ class GudangPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Search Bar
                 Container(
                   margin: const EdgeInsets.only(top: 12.0, bottom: 16.0),
                   decoration: BoxDecoration(
@@ -29,14 +182,13 @@ class GudangPage extends StatelessWidget {
                     ],
                   ),
                   child: TextField(
+                    onChanged: (value) => controller.updateSearchQuery(value),
                     decoration: InputDecoration(
                       hintText: 'search',
-                      hintStyle:
-                          TextStyle(color: Colors.grey[400], fontSize: 16),
+                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
                       prefixIcon: Padding(
                         padding: const EdgeInsets.only(left: 10.0, right: 5.0),
-                        child: Icon(Icons.search,
-                            color: Colors.grey[400], size: 22),
+                        child: Icon(Icons.search, color: Colors.grey[400], size: 22),
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -44,7 +196,6 @@ class GudangPage extends StatelessWidget {
                   ),
                 ),
 
-                // Out of stock section - PRESERVING ORIGINAL DESIGN ENTIRELY
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -62,22 +213,17 @@ class GudangPage extends StatelessWidget {
                           fontSize: 18,
                         ),
                       ),
-
                       SizedBox(height: 10),
-
-                      // Horizontal ScrollView with items and More button
                       SizedBox(
-                        height: 140, // Original height from HomePage
+                        height: 140,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
-                            // Original items from HomePage
                             _buildProductItem('Koko Abu / M', '3'),
                             SizedBox(width: 12),
                             _buildProductItem('Hem / L', '0'),
                             SizedBox(width: 12),
                             _buildProductItem('Koko Abu / S', '2'),
-                            // More button with same size as items
                             SizedBox(width: 12),
                             _buildMoreButton(),
                           ],
@@ -87,7 +233,6 @@ class GudangPage extends StatelessWidget {
                   ),
                 ),
 
-                // Category Title
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16.0),
                   child: Text(
@@ -99,65 +244,48 @@ class GudangPage extends StatelessWidget {
                   ),
                 ),
 
-                // Categories section - FROM HOMEPAGE VERSION
                 Container(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: Color(0xFF282828),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildCategoryItem('T-Shirt', Icons.checkroom),
-                      _buildCategoryItem('Kids', Icons.child_care),
                       _buildCategoryItem('Pants', Icons.accessibility_new),
+                      _buildCategoryItem('Kids', Icons.child_care),
                       _buildCategoryItem('Adults', Icons.person),
                       _buildCategoryItem('Uniform', Icons.school),
                     ],
                   ),
                 ),
 
-                // Filter Chips
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Row(
-                    children: [
-                      // Filter icon
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child:
-                            Icon(Icons.tune, size: 18, color: Colors.grey[700]),
+                  child: GestureDetector(
+                    key: filterButtonKey,
+                    onTap: () {
+                      _showDropdownMenu(context, filterButtonKey);
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      // Filter chips
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildFilterChip('All', true),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('New Arrival', false),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('XL Size', false),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('L Size', false),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('M Size', false),
-                            ],
-                          ),
+                      child: Center(
+                        child: Icon(
+                          Icons.tune,
+                          size: 22,
+                          color: Colors.grey[700],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
 
-                // Gudang Title and Total
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -168,31 +296,72 @@ class GudangPage extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      'Total : 5 barang',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                    GetBuilder<GudangController>(
+                      builder: (controller) => Text(
+                        'Total : ${controller.filteredItems.length} barang',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
                 ),
 
-                // Grid of Products
                 Padding(
                   padding: const EdgeInsets.only(top: 12.0),
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.7,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    children: List.generate(
-                      4,
-                      (index) => _buildProductItem2(),
-                    ),
+                  child: GetBuilder<GudangController>(
+                    builder: (controller) {
+                      if (controller.isLoading) {
+                        return Center(
+                          child: CircularProgressIndicator(
+                            color: primaryGreen,
+                          ),
+                        );
+                      }
+
+                      if (controller.filteredItems.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 30.0),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.inventory_2_outlined,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'No items found',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.7,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        itemCount: controller.filteredItems.length,
+                        itemBuilder: (context, index) {
+                          final item = controller.filteredItems[index];
+                          return _buildProductItemFromData(item);
+                        },
+                      );
+                    },
                   ),
                 ),
               ],
@@ -203,21 +372,19 @@ class GudangPage extends StatelessWidget {
     );
   }
 
-  // More button that matches size of products
   Widget _buildMoreButton() {
     return Container(
-      width: 35, // Reduced width from 100
+      width: 35,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            height: 30, // Same height as product items
+            height: 30,
             width: 30,
-            margin: EdgeInsets.only(
-                top: 43), // Increased top margin to center the button
+            margin: EdgeInsets.only(top: 43),
             child: Container(
               decoration: BoxDecoration(
-                color: Color(0xFFA9CD47), // Green background color
+                color: primaryGreen,
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -243,34 +410,29 @@ class GudangPage extends StatelessWidget {
     );
   }
 
-  // Original product item from HomePage
   Widget _buildProductItem(String title, String badge) {
     bool isOutOfStock = badge == '0';
 
     return Container(
       width: 100,
-      margin: EdgeInsets.only(
-          right: 0), // No right margin as spacing is handled by SizedBox
+      margin: EdgeInsets.only(right: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             height: 100,
             width: 100,
-            margin: EdgeInsets.only(
-                top: 10), // Added top margin to make space for the badge
+            margin: EdgeInsets.only(top: 10),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Product image container
                 Container(
                   decoration: BoxDecoration(
-                    color: Color(0xFFA9CD47), // Green background color
+                    color: primaryGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
 
-                // SOLD OUT overlay
                 if (isOutOfStock)
                   Positioned.fill(
                     child: Container(
@@ -291,7 +453,6 @@ class GudangPage extends StatelessWidget {
                     ),
                   ),
 
-                // Stock badge
                 if (!isOutOfStock && badge != '0')
                   Positioned(
                     top: -10,
@@ -338,7 +499,7 @@ class GudangPage extends StatelessWidget {
         Container(
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Color(0xFF3A3A3A),
+            color: Color(0xFF181C1D),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -351,7 +512,7 @@ class GudangPage extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            color: Colors.white,
+            color: Colors.black,
             fontSize: 12,
           ),
         ),
@@ -359,74 +520,122 @@ class GudangPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFFB4D66F) : Colors.grey[200],
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.black : Colors.grey[700],
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
+  Widget _buildProductItemFromData(dynamic item) {
+    final bool isOutOfStock = item['stock'] == 0;
+    final bool isNew = item['isNew'] == true;
 
-  Widget _buildProductItem2() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: Colors.grey[200],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                'assets/images/clothes.jpg',
-                fit: BoxFit.cover,
-                // Using a placeholder color since we can't access actual assets
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[100],
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.grey[200],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/images/clothes.jpg',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: primaryGreen.withOpacity(0.7),
+                        child: Center(
+                          child: Icon(
+                            Icons.checkroom,
+                            size: 40,
+                            color: Colors.white,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              if (isOutOfStock)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.black.withOpacity(0.7),
+                    ),
                     child: Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(width: 10, height: 60, color: Colors.white),
-                          Container(
-                              width: 10, height: 60, color: Colors.blue[100]),
-                          Container(
-                              width: 10, height: 60, color: Colors.orange[300]),
-                          Container(width: 10, height: 60, color: Colors.white),
-                          Container(
-                              width: 10, height: 60, color: Colors.blue[300]),
-                        ],
+                      child: Text(
+                        'SOLD OUT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
+                ),
+
+              if (!isOutOfStock && item['stock'] > 0)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${item['stock']}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              if (isNew)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF181C1D),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'NEW',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Setelan Koko Anak',
+        Text(
+          '${item['name']} / ${item['size']}',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        const Text(
-          'Rp.60,000',
+        Text(
+          'Rp.${item['price'].toString()}',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kliktoko/attendance_page/AttendancePage.dart';
 import 'package:kliktoko/home_page/Homepage/HomePage.dart';
 import 'package:kliktoko/gudang_page/GudangPage/GudangPage.dart';
 import 'package:kliktoko/profile_page/ProfilePage/ProfilePage.dart';
@@ -13,7 +14,7 @@ class NavController extends GetxController {
     const HomePage(key: ValueKey("HomePage")),
     const GudangPage(key: ValueKey("GudangPage")),
     const Placeholder(key: ValueKey("AddPage")), // Will not be shown, just a placeholder
-    const Placeholder(key: ValueKey("CalendarPage")), // Create a calendar page
+    const AttendancePage(key: ValueKey("AttendancePage")), // Create a calendar page
     const ProfilePage(key: ValueKey("ProfilePage")),
   ];
 

@@ -43,7 +43,7 @@ class FloatingBottomNavBar extends StatelessWidget {
             bottom: true,
             child: Container(
               alignment: Alignment.bottomCenter,
-              padding: const EdgeInsets.only(bottom: 40.0),
+              padding: const EdgeInsets.only(bottom: 25.0),
               child: Stack(
                 alignment: Alignment.center,
                 clipBehavior: Clip.none,
@@ -92,7 +92,7 @@ class FloatingBottomNavBar extends StatelessWidget {
                             index: 3,
                             controller: controller,
                             isActive: true,
-                            icon: _buildCalendarIcon,
+                            icon: _buildAttendanceIcon,
                           ),
 
                           // Profile button
@@ -145,7 +145,7 @@ class FloatingBottomNavBar extends StatelessWidget {
                           ),
                           child: Center(
                             child: Icon(
-                              Icons.add,
+                              Icons.qr_code_scanner_sharp,
                               color: const Color(0xFF282828),
                               size: 28.0,
                             ),
@@ -225,13 +225,13 @@ class FloatingBottomNavBar extends StatelessWidget {
   }
 
   // Calendar icon implementation
-  Widget _buildCalendarIcon(bool isSelected, bool isActive) {
+  Widget _buildAttendanceIcon(bool isSelected, bool isActive) {
     if (!isActive) return const SizedBox();
 
     return Icon(
-      Icons.calendar_today_outlined,
+      Icons.calendar_month_outlined,
       color: isSelected ? const Color(0xFF282828) : Colors.white,
-      size: 26.0, // Keeping the previous larger size
+      size: 30.0, // Keeping the previous larger size
     );
   }
 

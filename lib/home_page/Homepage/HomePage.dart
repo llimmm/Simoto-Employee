@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kliktoko/attendance_page/AttendancePage.dart';
+import 'package:get/get.dart';
+import '../../../navigation/NavController.dart';
+import '../../../attendance_page/AttendanceController.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends GetView<AttendanceController> {
   const HomePage({Key? key}) : super(key: key);
 
   @override
@@ -13,7 +15,7 @@ class HomePage extends StatelessWidget {
           // Added SingleChildScrollView for safety
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                16.0, 35.0, 16.0, 16.0), // Increased top padding from 32 to 50
+                16.0, 36.0, 16.0, 16.0), // Increased top padding from 32 to 50
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -63,9 +65,7 @@ class HomePage extends StatelessWidget {
                     Icon(Icons.notifications_outlined, color: Colors.red),
                   ],
                 ),
-
-                SizedBox(height: 35),
-
+                SizedBox(height: 32),
                 // Layered cards - Attendance status and Category cards
                 Stack(
                   clipBehavior: Clip.none,
@@ -128,53 +128,55 @@ class HomePage extends StatelessWidget {
                                 color: Colors.grey[600],
                               ),
                             ),
-                            SizedBox(height: 1),
+                            SizedBox(height: 0),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Anda Belum Absen',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Shift 1 | 08:00 - 14:00',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                            color:
-                                                Colors.blue.withOpacity(0.3)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.calendar_today,
-                                              size: 14, color: Colors.blue),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            '10 November 2024',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.blue,
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                                    Obx(() => Text(
+                                          controller.hasCheckedIn
+                                              ? 'Anda Sudah Absen'
+                                              : 'Anda Belum Absen',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
                                           ),
-                                        ],
-                                      ),
+                                        )),
+                                    SizedBox(height: 4),
+                                    Obx(() => Row(
+                                          children: [
+                                            Text(
+                                              'Shift ${controller.selectedShift} | ',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                            Text(
+                                              controller.getShiftTime(
+                                                  controller.selectedShift),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        )),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.calendar_today,
+                                            size: 14, color: Colors.grey),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          controller.getCurrentDateFormatted(),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -188,13 +190,8 @@ class HomePage extends StatelessWidget {
                                   ),
                                   child: GestureDetector(
                                     onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              AttendancePage(),
-                                        ),
-                                      );
+                                      Get.find<NavController>().changePage(
+                                          3); // Index 3 is for AttendancePage
                                     },
                                     child: Center(
                                       child: Icon(
@@ -246,17 +243,28 @@ class HomePage extends StatelessWidget {
                               border: Border.all(color: Color(0xFFA9CD47)),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Row(
-                              children: [
-                                Text(
-                                  'Lihat semua',
-                                  style: TextStyle(
-                                      color: Color(0xFFA9CD47), fontSize: 12),
-                                ),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_forward,
-                                    color: Color(0xFFA9CD47), size: 12),
-                              ],
+                            child: TextButton(
+                              onPressed: () {
+                                Get.find<NavController>()
+                                    .changePage(1); // Index 2 for GudangPage
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    'Lihat gudang',
+                                    style: TextStyle(
+                                        color: Color(0xFFA9CD47), fontSize: 12),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Icon(Icons.arrow_forward,
+                                      color: Color(0xFFA9CD47), size: 12),
+                                ],
+                              ),
                             ),
                           ),
                         ],
