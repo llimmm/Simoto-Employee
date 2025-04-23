@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kliktoko/attendance_page/AttendancePage.dart';
+import 'package:kliktoko/camera_page/CameraPage.dart';
 import 'package:kliktoko/home_page/Homepage/HomePage.dart';
 import 'package:kliktoko/gudang_page/GudangPage/GudangPage.dart';
 import 'package:kliktoko/profile_page/ProfilePage/ProfilePage.dart';
@@ -11,11 +12,13 @@ class NavController extends GetxController {
 
   // You'll need to create these additional pages
   final List<Widget> pages = [
-    const HomePage(key: ValueKey("HomePage")),
+    HomePage(key: ValueKey("HomePage")),
     const GudangPage(key: ValueKey("GudangPage")),
-    const Placeholder(key: ValueKey("AddPage")), // Will not be shown, just a placeholder
-    const AttendancePage(key: ValueKey("AttendancePage")), // Create a calendar page
-    const ProfilePage(key: ValueKey("ProfilePage")),
+    const CameraPage(
+        key: ValueKey("AddPage")), // Will not be shown, just a placeholder
+    const AttendancePage(
+        key: ValueKey("AttendancePage")), // Create a calendar page
+    ProfilePage(key: ValueKey("ProfilePage")),
   ];
 
   int get selectedIndex => _selectedIndex.value;
@@ -30,7 +33,7 @@ class NavController extends GetxController {
       handleAddButton();
     }
   }
-  
+
   void handleAddButton() {
     // Handle add button press - show a dialog, bottom sheet, or navigate to a form
     Get.bottomSheet(

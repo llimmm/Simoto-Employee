@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kliktoko/profile_page/ProfileController/ProfileController.dart';
+import '../ProfileController/ProfileController.dart';
 
-class ProfilePage extends GetView<ProfileController> {
-  const ProfilePage({super.key});
+class ProfilePage extends StatelessWidget {
+  final ProfileController controller = Get.put(ProfileController());
+
+  ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +22,11 @@ class ProfilePage extends GetView<ProfileController> {
                     'assets/profile.jpg'), // ganti sesuai gambar kamu
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Arka Narendra',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              Obx(() => Text(
+                    controller.username.value,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  )),
               const SizedBox(height: 20),
 
               // --- Info shift dan role yang baru ---
@@ -127,7 +130,7 @@ class ProfilePage extends GetView<ProfileController> {
                         trailing: const Icon(Icons.chevron_right,
                             color: Colors.white),
                         onTap: () {
-                          Get.toNamed('/history');
+                          controller.goToHistoryKerjaPage(context);
                         },
                       ),
                       ListTile(
@@ -138,7 +141,7 @@ class ProfilePage extends GetView<ProfileController> {
                         trailing: const Icon(Icons.chevron_right,
                             color: Colors.white),
                         onTap: () {
-                          Get.toNamed('/cuti');
+                          controller.goToFormLaporanKerjaPage(context);
                         },
                       ),
                       ListTile(
@@ -149,7 +152,7 @@ class ProfilePage extends GetView<ProfileController> {
                         trailing: const Icon(Icons.chevron_right,
                             color: Colors.white),
                         onTap: () {
-                          Get.toNamed('/theme');
+                          Navigator.pushNamed(context, '/theme');
                         },
                       ),
                       ListTile(
@@ -159,7 +162,7 @@ class ProfilePage extends GetView<ProfileController> {
                         trailing: const Icon(Icons.chevron_right,
                             color: Colors.white),
                         onTap: () {
-                          controller.logout();
+                          Navigator.pushNamed(context, '/logout');
                         },
                       ),
                     ],

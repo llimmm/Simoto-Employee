@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For haptic feedback
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'login_page/Loginpage/LoginBottomSheet.dart';
+import 'splash/splash_screen.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({Key? key}) : super(key: key);
@@ -62,13 +62,7 @@ class _StartPageState extends State<StartPage>
       _animationController.value = _dragValue;
       _animationController.animateTo(1.0).then((_) {
         Future.delayed(const Duration(milliseconds: 200), () {
-          Get.bottomSheet(
-            const LoginBottomSheet(),
-            isDismissible: true,
-            enableDrag: true,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-          );
+          Get.offAll(() => const SplashScreen());
 
           // Reset safely
           if (mounted) {

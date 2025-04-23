@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kliktoko/attendance_page/AttendanceController.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:kliktoko/attendance_page/SharedAttendanceController.dart';
+import 'package:kliktoko/home_page/HomeBindings/HomeBindings.dart';
+import 'package:kliktoko/home_page/HomeController/HomeController.dart';
+import 'package:kliktoko/home_page/HomePage/HomePage.dart';
+import 'package:kliktoko/login_page/LoginBindings/LoginBindings.dart';
+import 'package:kliktoko/login_page/Loginpage/LoginBottomSheet.dart';
+import 'package:kliktoko/navigation/BottomNavBar.dart';
 import 'package:kliktoko/navigation/NavBindings.dart';
-import 'package:kliktoko/navigation/NavController.dart';
-import 'package:kliktoko/routes/app_routes.dart';
-import 'package:kliktoko/start.dart'; 
+import 'package:kliktoko/start.dart';
+import 'package:kliktoko/storage/storage_service.dart';
 
-void main() {
-  // Ensure bindings are initialized
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
   
-  // Initialize controller immediately
-  Get.put(NavController(), permanent: true);
-  
-  // Add standard RouteObserver
-  final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
-  Get.put(routeObserver, permanent: true);
-  
-  // Initialize controllers
-  Get.lazyPut(() => AttendanceController());
+  // Initialize storage service and SharedAttendanceController
+  final storageService = Get.put(StorageService());
+  await storageService.init();
+  Get.put(SharedAttendanceController(), permanent: true);  // Add this line
+  Get.put(HomeController(), permanent: true);  // Add this line
   
   runApp(const MyApp());
 }
@@ -29,16 +32,41 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'KlikToko',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      initialBinding: NavBindings(),
-      navigatorObservers: [Get.find<RouteObserver<PageRoute>>()],
-      getPages: AppRoutes.routes,  // Use your existing routes
-      home: StartPage(), // Or whatever your initial page is
-      debugShowCheckedModeBanner: false,
+      title: 'Simoto Employee',
+      initialRoute: '/',  // Changed from '/start' to '/' to match the route definition
+      getPages: [
+        GetPage(
+          name: '/',
+          page: () => const StartPage(),
+          binding: BindingsBuilder(() {
+            Get.put(StorageService());
+          }),
+          transition: Transition.fadeIn,
+        ),
+        GetPage(
+          name: '/login',
+          page: () => const Material(
+            child: Scaffold(
+              body: LoginBottomSheet(),
+            ),
+          ),
+          binding: LoginBinding(),
+          transition: Transition.fadeIn,
+          preventDuplicates: false, // Allow re-opening login if needed
+        ),
+        GetPage(
+          name: '/home',
+          page: () => const HomePage(),
+          binding: HomeBindings(),
+          transition: Transition.fadeIn,
+        ),
+        GetPage(
+          name: '/bottomnav',
+          page: () => const FloatingBottomNavBar(),
+          binding: NavBindings(),
+          transition: Transition.fadeIn,
+        ),
+      ],
     );
   }
 }

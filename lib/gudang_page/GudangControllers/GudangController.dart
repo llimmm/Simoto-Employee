@@ -1,22 +1,28 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kliktoko/navigation/NavController.dart';
+import 'package:kliktoko/APIService/ApiService.dart';
+import 'package:kliktoko/gudang_page/GudangModel/ProductModel.dart';
 
 class GudangController extends GetxController {
   // Non-reactive state (no .obs)
   bool isLoading = false;
   String searchQuery = '';
-  List<dynamic> inventoryItems = [];
-  List<dynamic> filteredItems = [];
+  List<Product> inventoryItems = [];
+  List<Product> filteredItems = [];
+  final ApiService _apiService = ApiService();
 
   // Only keep reactive state for the filter and current route
   var selectedFilter = 'All'.obs;
   List<String> filterOptions = [
     'All',
     'New Arrival',
-    'XL Size',
+    'S Size',
+    'M Size',
     'L Size',
-    'M Size'
+    'XL Size',
+    'XXL Size',
+    'XXXL Size',
+    '3L Size',
   ];
 
   // Signal to close dropdown
@@ -43,50 +49,19 @@ class GudangController extends GetxController {
     });
   }
 
-  void loadInventoryData() {
-    isLoading = true;
-    update(); // Notify UI of loading state change
+  Future<void> loadInventoryData() async {
+    try {
+      isLoading = true;
+      update();
 
-    // Simulate API call to fetch inventory data
-    Future.delayed(Duration(milliseconds: 800), () {
-      // Example inventory items (replace with your actual data structure)
-      inventoryItems = [
-        {
-          'name': 'Koko Abu',
-          'size': 'M',
-          'stock': 3,
-          'isNew': true,
-          'price': 120000
-        },
-        {
-          'name': 'Hem',
-          'size': 'L',
-          'stock': 0,
-          'isNew': false,
-          'price': 95000
-        },
-        {
-          'name': 'Koko Abu',
-          'size': 'S',
-          'stock': 2,
-          'isNew': false,
-          'price': 120000
-        },
-        {
-          'name': 'Setelan Koko Anak',
-          'size': 'XL',
-          'stock': 5,
-          'isNew': true,
-          'price': 60000
-        },
-        // Add more items as needed
-      ];
-
-      // Initial filtering
+      inventoryItems = await _apiService.getProducts();
       applyFilter();
+    } catch (e) {
+      print('Error loading inventory data: $e');
+    } finally {
       isLoading = false;
-      update(); // Notify UI of state changes
-    });
+      update();
+    }
   }
 
   void updateSearchQuery(String query) {
@@ -106,10 +81,8 @@ class GudangController extends GetxController {
     // Apply search query filter if any
     if (searchQuery.isNotEmpty) {
       result = result
-          .where((item) => item['name']
-              .toString()
-              .toLowerCase()
-              .contains(searchQuery.toLowerCase()))
+          .where((item) =>
+              item.name.toLowerCase().contains(searchQuery.toLowerCase()))
           .toList();
     }
 
@@ -117,23 +90,35 @@ class GudangController extends GetxController {
     if (selectedFilter.value != 'All') {
       switch (selectedFilter.value) {
         case 'New Arrival':
-          result = result.where((item) => item['isNew'] == true).toList();
+          result = result.where((item) => item.isNew).toList();
           break;
-        case 'XL Size':
-          result = result.where((item) => item['size'] == 'XL').toList();
-          break;
-        case 'L Size':
-          result = result.where((item) => item['size'] == 'L').toList();
+        case 'S Size':
+          result = result.where((item) => item.size == 'S').toList();
           break;
         case 'M Size':
-          result = result.where((item) => item['size'] == 'M').toList();
+          result = result.where((item) => item.size == 'M').toList();
+          break;
+        case 'L Size':
+          result = result.where((item) => item.size == 'L').toList();
+          break;
+        case 'XL Size':
+          result = result.where((item) => item.size == 'XL').toList();
+          break;
+        case 'XXL Size':
+          result = result.where((item) => item.size == 'XXL').toList();
+          break;
+        case 'XXXL Size':
+          result = result.where((item) => item.size == 'XXXL').toList();
+          break;
+        case '3L Size':
+          result = result.where((item) => item.size == '3L').toList();
           break;
       }
     }
 
     // Update the filtered items
     filteredItems = result;
-    update(); // Notify UI of state changes
+    update();
   }
 
   void refreshInventory() {

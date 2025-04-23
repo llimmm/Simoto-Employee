@@ -1,38 +1,29 @@
 import 'package:get/get.dart';
+import 'SharedAttendanceController.dart';
 
 class AttendanceController extends GetxController {
-  // Reactive variables
-  final RxBool _hasCheckedIn = false.obs;
-  final RxInt _selectedShift = 1.obs;
-  final RxDouble _attendancePercentage = 0.75.obs;
+  // Get shared attendance controller
+  SharedAttendanceController get attendanceController =>
+      SharedAttendanceController.to;
 
-  // Getters
-  bool get hasCheckedIn => _hasCheckedIn.value;
-  int get selectedShift => _selectedShift.value;
-  double get attendancePercentage => _attendancePercentage.value;
+  // Delegate all attendance-related operations to shared controller
+  RxBool get hasCheckedIn => attendanceController.hasCheckedIn;
+  RxString get selectedShift => attendanceController.selectedShift;
+  RxDouble get attendancePercentage =>
+      attendanceController.attendancePercentage;
 
-  // Methods
-  void setShift(int shift) {
-    _selectedShift.value = shift;
-  }
+  void setShift(String shiftNumber) =>
+      attendanceController.setShift(shiftNumber);
+  void checkIn() => attendanceController.checkIn();
+  String getShiftTime(String shift) => attendanceController.getShiftTime(shift);
+  String getCurrentDateFormatted() =>
+      attendanceController.getCurrentDateFormatted();
 
-  void checkIn() {
-    _hasCheckedIn.value = true;
-  }
-
-  String getShiftTime(int shift) {
-    switch (shift) {
-      case 1:
-        return "08:00 - 14:00";
-      case 2:
-        return "14:00 - 21:00";
-      default:
-        return "Unknown Shift";
-    }
-  }
-
-  String getCurrentDateFormatted() {
-    DateTime now = DateTime.now();
-    return "${now.day}/${now.month}/${now.year}";
+  @override
+  void onInit() {
+    super.onInit();
+    // Initialize attendance controller and set up shift detection
+    attendanceController.determineShift();
+    ever(selectedShift, (_) => attendanceController.determineShift());
   }
 }

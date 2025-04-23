@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kliktoko/home_page/HomeController/HomeController.dart';
 import '../GudangControllers/GudangController.dart';
 
 class GudangPage extends StatefulWidget {
@@ -11,26 +12,18 @@ class GudangPage extends StatefulWidget {
 
 class _GudangPageState extends State<GudangPage> {
   final GudangController controller = Get.put(GudangController());
-
-  // Local state for the filter options
-  final List<String> filterOptions = [
-    'All',
-    'New Arrival', 
-    'XL Size',
-    'L Size',
-    'M Size'
-  ];
-
-  // Green color constant
-  final Color primaryGreen = Color(0xFFA9CD47);
-
-  // Track if the dropdown menu is open
-  OverlayEntry? _overlayEntry;
-  bool isDropdownVisible = false;
+  late HomeController homeController;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize HomeController if not already initialized
+    if (!Get.isRegistered<HomeController>()) {
+      homeController = Get.put(HomeController(), permanent: true);
+    } else {
+      homeController = Get.find<HomeController>();
+    }
 
     // Subscribe to the controller's dropdown close signal
     ever(controller.shouldCloseDropdown, (shouldClose) {
@@ -40,6 +33,26 @@ class _GudangPageState extends State<GudangPage> {
       }
     });
   }
+
+  // Local state for the filter options
+  final List<String> filterOptions = [
+    'All',
+    'New Arrival',
+    'S Size',
+    'M Size',
+    'L Size',
+    'XL Size',
+    'XXL Size',
+    'XXXL Size',
+    '3L Size',
+  ];
+
+  // Green color constant
+  final Color primaryGreen = Color(0xFFA9CD47);
+
+  // Track if the dropdown menu is open
+  OverlayEntry? _overlayEntry;
+  bool isDropdownVisible = false;
 
   @override
   void dispose() {
@@ -63,85 +76,72 @@ class _GudangPageState extends State<GudangPage> {
     }
   }
 
-  void _showDropdownMenu(BuildContext context, GlobalKey buttonKey) {
-    if (isDropdownVisible) {
-      _removeOverlay();
-      return;
-    }
+  void _closeDropdownMenu() {
+    _removeOverlay();
+  }
 
-    // Get the render box of the button
-    if (!buttonKey.currentContext!.findRenderObject()!.attached) {
-      return; // Skip if render object is not attached
-    }
-
+  void _showDropdownMenu(BuildContext context, GlobalKey key) {
     final RenderBox renderBox =
-        buttonKey.currentContext!.findRenderObject() as RenderBox;
-    final Size size = renderBox.size;
-    final Offset position = renderBox.localToGlobal(Offset.zero);
+        key.currentContext!.findRenderObject() as RenderBox;
+    final position = renderBox.localToGlobal(Offset.zero);
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Stack(
         children: [
-          // Invisible layer to detect taps outside
           Positioned.fill(
             child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: _removeOverlay,
-              child: Container(
-                color: Colors.transparent,
-              ),
+              onTap: _closeDropdownMenu,
+              child: Container(color: Colors.transparent),
             ),
           ),
-          // Your existing dropdown
           Positioned(
-            left: position.dx,
-            top: position.dy + size.height + 5.0,
-            width: 150,
+            top: position.dy + renderBox.size.height + 5,
+            left: 16, // Changed from 'right' to 'left' to match the UI
             child: Material(
-              elevation: 4.0,
-              borderRadius: BorderRadius.circular(8),
-              clipBehavior: Clip.antiAlias,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
               child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: 250,
+                ),
+                width: 150,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: filterOptions.map((option) {
-                    return Material(
-                      color: controller.selectedFilter.value == option
-                          ? primaryGreen
-                          : Colors.white,
-                      child: InkWell(
+                child: SingleChildScrollView(
+                  // Add scrolling
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: filterOptions.map((option) {
+                      return InkWell(
                         onTap: () {
                           controller.updateFilter(option);
                           _removeOverlay();
-                          if (mounted) setState(() {});
                         },
-                        hoverColor: primaryGreen.withOpacity(0.2),
-                        splashColor: primaryGreen.withOpacity(0.3),
-                        highlightColor: primaryGreen.withOpacity(0.1),
                         child: Container(
                           width: double.infinity,
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           child: Text(
                             option,
                             style: TextStyle(
                               color: controller.selectedFilter.value == option
-                                  ? Colors.black
-                                  : Colors.black,
+                                  ? primaryGreen
+                                  : Colors.black87,
                               fontSize: 14,
-                              fontWeight: controller.selectedFilter.value == option
-                                  ? FontWeight.w500
-                                  : FontWeight.normal,
+                              fontWeight:
+                                  controller.selectedFilter.value == option
+                                      ? FontWeight.w500
+                                      : FontWeight.normal,
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ),
@@ -185,17 +185,18 @@ class _GudangPageState extends State<GudangPage> {
                     onChanged: (value) => controller.updateSearchQuery(value),
                     decoration: InputDecoration(
                       hintText: 'search',
-                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
+                      hintStyle:
+                          TextStyle(color: Colors.grey[400], fontSize: 16),
                       prefixIcon: Padding(
                         padding: const EdgeInsets.only(left: 10.0, right: 5.0),
-                        child: Icon(Icons.search, color: Colors.grey[400], size: 22),
+                        child: Icon(Icons.search,
+                            color: Colors.grey[400], size: 22),
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
-
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -232,7 +233,6 @@ class _GudangPageState extends State<GudangPage> {
                     ],
                   ),
                 ),
-
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16.0),
                   child: Text(
@@ -243,7 +243,6 @@ class _GudangPageState extends State<GudangPage> {
                     ),
                   ),
                 ),
-
                 Container(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
@@ -260,7 +259,6 @@ class _GudangPageState extends State<GudangPage> {
                     ],
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   child: GestureDetector(
@@ -285,7 +283,6 @@ class _GudangPageState extends State<GudangPage> {
                     ),
                   ),
                 ),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -308,7 +305,6 @@ class _GudangPageState extends State<GudangPage> {
                     ),
                   ],
                 ),
-
                 Padding(
                   padding: const EdgeInsets.only(top: 12.0),
                   child: GetBuilder<GudangController>(
@@ -432,7 +428,6 @@ class _GudangPageState extends State<GudangPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-
                 if (isOutOfStock)
                   Positioned.fill(
                     child: Container(
@@ -452,7 +447,6 @@ class _GudangPageState extends State<GudangPage> {
                       ),
                     ),
                   ),
-
                 if (!isOutOfStock && badge != '0')
                   Positioned(
                     top: -10,
@@ -556,7 +550,6 @@ class _GudangPageState extends State<GudangPage> {
                   ),
                 ),
               ),
-
               if (isOutOfStock)
                 Positioned.fill(
                   child: Container(
@@ -576,7 +569,6 @@ class _GudangPageState extends State<GudangPage> {
                     ),
                   ),
                 ),
-
               if (!isOutOfStock && item['stock'] > 0)
                 Positioned(
                   top: 8,
@@ -600,7 +592,6 @@ class _GudangPageState extends State<GudangPage> {
                     ),
                   ),
                 ),
-
               if (isNew)
                 Positioned(
                   top: 8,

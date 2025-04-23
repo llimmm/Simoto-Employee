@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 import 'package:kliktoko/gudang_page/GudangPage/GudangPage.dart';
 import 'package:kliktoko/home_page/Homepage/HomePage.dart';
+import 'package:kliktoko/login_page/LoginBindings/LoginBindings.dart';
+import 'package:kliktoko/login_page/Loginpage/LoginBottomSheet.dart';
 import 'package:kliktoko/navigation/NavBindings.dart';
 import 'package:kliktoko/profile_page/ProfilePage/ProfilePage.dart';
 import 'package:kliktoko/start.dart';
@@ -11,7 +13,7 @@ import 'package:kliktoko/profile_page/ProfileBindings/ProfileBindings.dart';
 
 class AppRoutes {
   static const String start = '/start';
-  static const String bottomNav = '/bottomNav';
+  static const String bottomNav = '/bottomnav';
   static const String home = '/home';
   static const String gudang = '/gudang';
   static const String profile = '/profile';
@@ -20,11 +22,12 @@ class AppRoutes {
     GetPage(
       name: start,
       page: () => const StartPage(),
+      binding: LoginBinding(),
     ),
     GetPage(
-  name: '/bottomNav',
-    page: () => const FloatingBottomNavBar(),
-    binding: NavBindings(),
+      name: bottomNav,
+      page: () => const FloatingBottomNavBar(),
+      binding: NavBindings(),
     ),
     GetPage(
       name: home,
@@ -38,8 +41,13 @@ class AppRoutes {
     ),
     GetPage(
       name: '/profile',
-      page: () => const ProfilePage(),
+      page: () => ProfilePage(),
       binding: ProfileBindings(), // Menghubungkan ProfileBindings ke rute ini
+    ),
+    GetPage(
+      name: '/login',
+      page: () => const LoginBottomSheet(),
+      binding: LoginBinding(),
     ),
   ];
 }

@@ -7,10 +7,16 @@ environment:
   sdk: ">=3.6.0 <3.29.2"
 
 dependencies:
-  flutter:
+  flutter_localizations:
     sdk: flutter
   flutter_svg: ^2.0.9
   get: ^4.6.5  # Changed from ^4.6.6 to ^4.6.5 for better stability
+  camera: ^0.10.5+5
+  permission_handler: ^11.0.1
+  intl: ^0.19.0
+  image_picker: ^0.8.8+1
+  shared_preferences: ^2.5.3
+
 
 dev_dependencies:
   flutter_test:
