@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:kliktoko/login_page/LoginModel/LoginModel.dart';
 import 'package:kliktoko/gudang_page/GudangModel/ProductModel.dart';
@@ -60,7 +61,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getUserData(String token) async {
     try {
-      print('Fetching user data with token: ${token.substring(0, 10)}...');
+      print('Fetching user data with token: ${token.substring(0, min(token.length, 10))}...');
       final response = await _client.get(
         Uri.parse('$baseUrl/api/user'),
         headers: await _getHeaders(token),
@@ -70,7 +71,21 @@ class ApiService {
       print('User data API response body: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final Map<String, dynamic> userData = json.decode(response.body);
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        // Extract user data from the response
+        Map<String, dynamic> userData = {};
+        
+        // Handle different API response structures
+        if (responseData.containsKey('data') && responseData['data'] is Map<String, dynamic>) {
+          userData = responseData['data'];
+        } else if (responseData.containsKey('user') && responseData['user'] is Map<String, dynamic>) {
+          userData = responseData['user'];
+        } else {
+          // If no structured data, use the entire response
+          userData = responseData;
+        }
+        
         print('Parsed user data: $userData');
         return userData;
       } else {

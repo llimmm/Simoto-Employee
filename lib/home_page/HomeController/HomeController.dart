@@ -3,7 +3,6 @@ import 'package:kliktoko/attendance_page/SharedAttendanceController.dart';
 import 'package:kliktoko/storage/storage_service.dart';
 import '../../APIService/ApiService.dart';
 import '../../gudang_page/GudangModel/ProductModel.dart';
-import '../../storage/storage_service.dart';
 
 class HomeController extends GetxController {
   var selectedIndex = 0.obs;
@@ -29,8 +28,10 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadProducts();
-    loadUserData();
+    _storageService.init().then((_) {
+      loadUserData();
+      loadProducts();
+    });
   }
 
   Future<void> loadProducts() async {
@@ -54,13 +55,38 @@ class HomeController extends GetxController {
 
   Future<void> loadUserData() async {
     try {
+      // First try to get user data from local storage
+      final userData = await _storageService.getUserData();
+      if (userData != null && userData.containsKey('name')) {
+        username.value = userData['name'];
+        print('Loaded username from storage in HomeController: ${username.value}');
+      } else {
+        print('No username found in storage');
+      }
+      
+      // Then try to refresh from API if we have a token
       final token = await _storageService.getToken();
       if (token != null) {
-        final userData = await _apiService.getUserData(token);
-        username.value = userData['name'] ?? '';
+        try {
+          final apiUserData = await _apiService.getUserData(token);
+          if (apiUserData.containsKey('name') && 
+              apiUserData['name'] != null && 
+              apiUserData['name'].toString().isNotEmpty) {
+            username.value = apiUserData['name'];
+            print('Updated username from API in HomeController: ${username.value}');
+            await _storageService.saveUserData(apiUserData); // Update cached user data
+          } else {
+            print('API returned empty username');
+          }
+        } catch (e) {
+          print('Error fetching user data from API: $e');
+          // We already tried local storage, so we'll use that if it worked
+        }
+      } else {
+        print('No token available, could not refresh from API');
       }
     } catch (e) {
-      print('Error loading user data: $e');
+      print('Error in loadUserData: $e');
     }
   }
 

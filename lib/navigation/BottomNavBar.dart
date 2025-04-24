@@ -15,19 +15,32 @@ class FloatingBottomNavBar extends StatelessWidget {
       controller = Get.put(NavController(), permanent: true);
     }
 
+    // Get screen dimensions for responsive design
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    // Navigation bar dimensions
+    // Navigation bar dimensions - responsive to screen width
     final navBarWidth = screenWidth * 0.85;
-    final navBarHeight = 70.0;
+    final navBarHeight = screenHeight < 600 ? 65.0 : 70.0;
+
+    // Responsive button sizes
+    final buttonSize = screenWidth < 360 ? 45.0 : 50.0;
+
+    // Space for center button
+    final centerButtonSpace = buttonSize * 1.2;
+
+    // Responsive icon sizes
+    final iconSize = screenWidth < 360 ? 24.0 : 28.0;
+
+    // Calculate bottom padding to account for safe area and screen size
+    final adaptiveBottomPadding = bottomPadding > 0
+        ? bottomPadding + 10.0 // For devices with notches/safe areas
+        : (screenHeight < 700 ? 15.0 : 25.0); // For devices without notches
 
     return Scaffold(
-      // Light mint green background as shown in the reference image
       backgroundColor: const Color(0xFFF1F9E9),
-
-      // Use resizeToAvoidBottomInset: false to prevent resizing when keyboard appears
       resizeToAvoidBottomInset: false,
-
       body: Stack(
         children: [
           // Main content area - displays the selected page
@@ -36,19 +49,17 @@ class FloatingBottomNavBar extends StatelessWidget {
                 children: controller.pages,
               )),
 
-          // Floating navigation bar - now attached to a SafeArea
-          SafeArea(
-            // Set top to false to only provide safe area at the bottom
-            top: false,
-            bottom: true,
-            child: Container(
-              alignment: Alignment.bottomCenter,
-              padding: const EdgeInsets.only(bottom: 25.0),
+          // Floating navigation bar
+          Positioned(
+            bottom: adaptiveBottomPadding,
+            left: 0,
+            right: 0,
+            child: Center(
               child: Stack(
                 alignment: Alignment.center,
                 clipBehavior: Clip.none,
                 children: [
-                  // Custom shaped navigation bar with precise notch
+                  // Custom shaped navigation bar with notch
                   CustomPaint(
                     size: Size(navBarWidth, navBarHeight),
                     painter: NavBarPainter(
@@ -56,71 +67,74 @@ class FloatingBottomNavBar extends StatelessWidget {
                     ),
                   ),
 
-                  // Navigation buttons - positioned top-center
-                  SizedBox(
+                  // Navigation buttons
+                  Container(
                     width: navBarWidth,
                     height: navBarHeight,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10.0), // Even vertical padding
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment:
-                            CrossAxisAlignment.center, // Center alignment
-                        children: [
-                          // Home button
-                          _buildNavButton(
-                            index: 0,
-                            controller: controller,
-                            isActive: true,
-                            icon: _buildHomeIcon,
-                          ),
+                    padding:
+                        EdgeInsets.symmetric(vertical: navBarHeight * 0.15),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Home button
+                        _buildNavButton(
+                          index: 0,
+                          controller: controller,
+                          isActive: true,
+                          icon: Icons.home,
+                          buttonSize: buttonSize,
+                          iconSize: iconSize,
+                        ),
 
-                          // Inventory button
-                          _buildNavButton(
-                            index: 1,
-                            controller: controller,
-                            isActive: true,
-                            icon: _buildInventoryIcon,
-                          ),
+                        // Inventory button
+                        _buildNavButton(
+                          index: 1,
+                          controller: controller,
+                          isActive: true,
+                          icon: Icons.inventory_2_outlined,
+                          buttonSize: buttonSize,
+                          iconSize: iconSize,
+                        ),
 
-                          // Empty space for the add button
-                          const SizedBox(width: 60),
+                        // Empty space for the add button
+                        SizedBox(width: centerButtonSpace),
 
-                          // Calendar button
-                          _buildNavButton(
-                            index: 3,
-                            controller: controller,
-                            isActive: true,
-                            icon: _buildAttendanceIcon,
-                          ),
+                        // Calendar button
+                        _buildNavButton(
+                          index: 3,
+                          controller: controller,
+                          isActive: true,
+                          icon: Icons.calendar_month_outlined,
+                          buttonSize: buttonSize,
+                          iconSize: iconSize,
+                        ),
 
-                          // Profile button
-                          _buildNavButton(
-                            index: 4,
-                            controller: controller,
-                            isActive: true,
-                            icon: _buildProfileIcon,
-                          ),
-                        ],
-                      ),
+                        // Profile button
+                        _buildNavButton(
+                          index: 4,
+                          controller: controller,
+                          isActive: true,
+                          icon: Icons.person_outline,
+                          buttonSize: buttonSize,
+                          iconSize: iconSize,
+                        ),
+                      ],
                     ),
                   ),
 
                   // Center floating add button
                   Positioned(
-                    top: -27.0,
+                    top: -(buttonSize * 0.55),
                     child: GestureDetector(
                       onTap: () => controller.handleAddButton(),
                       child: Container(
-                        width: 54.0,
-                        height: 54.0,
+                        width: buttonSize + 4,
+                        height: buttonSize + 4,
                         decoration: BoxDecoration(
                           color: const Color(0xFFB5DE42),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color:
-                                const Color(0xFF000000), // Black outer border
+                            color: const Color(0xFF000000),
                             width: 2.0,
                           ),
                           boxShadow: [
@@ -132,14 +146,14 @@ class FloatingBottomNavBar extends StatelessWidget {
                             ),
                           ],
                         ),
-                        // Inner container to create the double ring effect
+                        // Inner container for double ring effect
                         child: Container(
                           margin: const EdgeInsets.all(2.0),
                           decoration: BoxDecoration(
                             color: const Color(0xFFB5DE42),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.black, // Black inner border too
+                              color: Colors.black,
                               width: 2.0,
                             ),
                           ),
@@ -147,7 +161,7 @@ class FloatingBottomNavBar extends StatelessWidget {
                             child: Icon(
                               Icons.qr_code_scanner_sharp,
                               color: const Color(0xFF282828),
-                              size: 28.0,
+                              size: iconSize,
                             ),
                           ),
                         ),
@@ -163,19 +177,21 @@ class FloatingBottomNavBar extends StatelessWidget {
     );
   }
 
-  // Button builder for navigation items
+  // Simplified button builder for navigation items
   Widget _buildNavButton({
     required int index,
     required NavController controller,
     required bool isActive,
-    required Widget Function(bool isSelected, bool isActive) icon,
+    required IconData icon,
+    required double buttonSize,
+    required double iconSize,
   }) {
     return Obx(() {
       final isSelected = controller.selectedIndex == index;
-      final buttonSize = 50.0; // Keeping the previous larger size
 
       return GestureDetector(
         onTap: () => controller.changePage(index),
+        behavior: HitTestBehavior.opaque,
         child: Container(
           width: buttonSize,
           height: buttonSize,
@@ -195,55 +211,15 @@ class FloatingBottomNavBar extends StatelessWidget {
                 : null,
           ),
           child: Center(
-            child: icon(isSelected, isActive),
+            child: Icon(
+              icon,
+              color: isSelected ? const Color(0xFF282828) : Colors.white,
+              size: iconSize,
+            ),
           ),
         ),
       );
     });
-  }
-
-  // Home icon implementation
-  Widget _buildHomeIcon(bool isSelected, bool isActive) {
-    if (!isActive) return const SizedBox();
-
-    return Icon(
-      Icons.home,
-      color: isSelected ? const Color(0xFF282828) : Colors.white,
-      size: 28.0, // Keeping the previous larger size
-    );
-  }
-
-  // Inventory/box icon implementation
-  Widget _buildInventoryIcon(bool isSelected, bool isActive) {
-    if (!isActive) return const SizedBox();
-
-    return Icon(
-      Icons.inventory_2_outlined,
-      color: isSelected ? const Color(0xFF282828) : Colors.white,
-      size: 28.0, // Keeping the previous larger size
-    );
-  }
-
-  // Calendar icon implementation
-  Widget _buildAttendanceIcon(bool isSelected, bool isActive) {
-    if (!isActive) return const SizedBox();
-
-    return Icon(
-      Icons.calendar_month_outlined,
-      color: isSelected ? const Color(0xFF282828) : Colors.white,
-      size: 30.0, // Keeping the previous larger size
-    );
-  }
-
-  // Profile icon implementation
-  Widget _buildProfileIcon(bool isSelected, bool isActive) {
-    if (!isActive) return const SizedBox();
-
-    return Icon(
-      Icons.person_outline,
-      color: isSelected ? const Color(0xFF282828) : Colors.white,
-      size: 28.0, // Keeping the previous larger size
-    );
   }
 }
 
@@ -261,7 +237,11 @@ class NavBarPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    final double cornerRadius = 35.0;
+    // Make corner radius responsive to the size of the nav bar
+    final double cornerRadius = size.height * 0.5;
+
+    // Calculate notch size proportional to width
+    final notchWidth = size.width * 0.078; // ~33px on a standard screen
 
     // Create path for the navigation bar with exact notch shape
     final path = Path();
@@ -270,13 +250,12 @@ class NavBarPainter extends CustomPainter {
     path.moveTo(cornerRadius, 0);
 
     // Draw top edge to notch start
-    path.lineTo(size.width / 2 - 33, 0); // Slightly wider notch
+    path.lineTo(size.width / 2 - notchWidth, 0);
 
-    // Draw precise notch curve - exactly as shown in the reference
-    // This is a deeper, more defined semicircular notch
+    // Draw precise notch curve
     path.arcToPoint(
-      Offset(size.width / 2 + 33, 0), // Slightly wider notch
-      radius: Radius.circular(33), // Slightly wider notch
+      Offset(size.width / 2 + notchWidth, 0),
+      radius: Radius.circular(notchWidth),
       clockwise: false,
     );
 

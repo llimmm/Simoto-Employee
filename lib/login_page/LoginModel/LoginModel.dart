@@ -27,11 +27,19 @@ class LoginResponse {
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    Map<String, dynamic> userData = json['data']?['user'] ?? {};
+    
+    // If name is missing in the user data but present in the data section
+    if ((!userData.containsKey('name') || userData['name'] == null || userData['name'].isEmpty) &&
+        json['data'] != null && json['data']['name'] != null) {
+      userData['name'] = json['data']['name'];
+    }
+    
     return LoginResponse(
-      token: json['data']?['token'] ?? '', // Correctly extract the token
+      token: json['data']?['token'] ?? '',
       message: json['message'] ?? '',
-      success: json['status'] ?? false, // Ensure status maps to success
-      user: json['data']?['user'] ?? {}, // Extract user data
+      success: json['status'] ?? false,
+      user: userData,
     );
   }
 }

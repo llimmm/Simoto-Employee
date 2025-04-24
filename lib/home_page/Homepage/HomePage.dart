@@ -9,25 +9,44 @@ class HomePage extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    // Make sure controller is initialized and registered with Get
+    if (!Get.isRegistered<HomeController>()) {
+      Get.put(HomeController());
+    }
+    
+    // Get screen dimensions for responsive design
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    // Call loadUserData explicitly to ensure username is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.loadUserData();
+    });
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF1F9E9), // Light green background color
       body: SafeArea(
         child: SingleChildScrollView(
-          // Added SingleChildScrollView for safety
+          physics: const BouncingScrollPhysics(),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-                16.0, 36.0, 16.0, 16.0), // Increased top padding from 32 to 50
+            padding: EdgeInsets.fromLTRB(
+                screenWidth * 0.04,    // Horizontal padding (4% of screen width)
+                screenHeight * 0.04,   // Top padding (4% of screen height)
+                screenWidth * 0.04,    // Horizontal padding (4% of screen width)
+                screenWidth * 0.04),   // Bottom padding (4% of screen width)
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Top header with profile and notification
-                _buildHeader(),
-                const SizedBox(height: 32),
+                _buildHeader(screenWidth),
+                SizedBox(height: screenHeight * 0.04),
                 // Layered cards - Attendance status and Category cards
-                _buildLayeredCards(),
-                const SizedBox(height: 20),
+                _buildLayeredCards(screenWidth, screenHeight),
+                SizedBox(height: screenHeight * 0.025),
                 // Out of stock section
-                _buildOutOfStockSection(),
+                _buildOutOfStockSection(screenWidth, screenHeight),
+                // Add extra space at the bottom to avoid navigation bar overlap
+                SizedBox(height: screenHeight * 0.08),
               ],
             ),
           ),
@@ -36,46 +55,59 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(double screenWidth) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            // Profile picture
-            const CircleAvatar(
-              radius: 20,
-              backgroundColor: Colors.grey,
-              backgroundImage: AssetImage('assets/profile_pic.jpg'),
-            ),
-            const SizedBox(width: 12),
-            // Welcome text
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Arka Narendra',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                Row(
-                  children: const [
-                    Text(
-                      'Selamat Datang Kembali',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+        Expanded(
+          child: Row(
+            children: [
+              // Profile picture
+              const CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.grey,
+                backgroundImage: AssetImage('assets/profile_pic.jpg'),
+              ),
+              SizedBox(width: screenWidth * 0.03),
+              // Welcome text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Use Obx to reactively update the username
+                    Obx(() {
+                      return Text(
+                        controller.username.value.isNotEmpty 
+                            ? controller.username.value
+                            : 'User',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      );
+                    }),
+                    Row(
+                      children: const [
+                        Flexible(
+                          child: Text(
+                            'Selamat Datang Kembali',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.waving_hand, color: Colors.amber, size: 18)
+                      ],
                     ),
-                    SizedBox(width: 4),
-                    Icon(Icons.waving_hand, color: Colors.amber, size: 18)
                   ],
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
         // Notification icon
         const Icon(Icons.notifications_outlined, color: Colors.red),
@@ -83,24 +115,30 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
-  Widget _buildLayeredCards() {
+  Widget _buildLayeredCards(double screenWidth, double screenHeight) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
         // Bottom layer - Category card
-        _buildCategoryCard(),
+        _buildCategoryCard(screenWidth, screenHeight),
         const SizedBox(height: 80),
         // Top layer - Attendance status card
-        _buildAttendanceCard(),
+        _buildAttendanceCard(screenWidth, screenHeight),
       ],
     );
   }
 
-  Widget _buildCategoryCard() {
+  Widget _buildCategoryCard(double screenWidth, double screenHeight) {
+    // Calculate responsive vertical position of category card
+    final topPadding = screenHeight < 600 ? 70.0 : 80.0;
+    
     return Padding(
-      padding: const EdgeInsets.only(top: 80.0),
+      padding: EdgeInsets.only(top: topPadding),
       child: Container(
-        padding: const EdgeInsets.only(top: 80, bottom: 16),
+        padding: EdgeInsets.only(
+          top: screenHeight * 0.1, 
+          bottom: screenHeight * 0.02
+        ),
         decoration: BoxDecoration(
           color: const Color(0xFF282828),
           borderRadius: BorderRadius.circular(16),
@@ -112,21 +150,34 @@ class HomePage extends GetView<HomeController> {
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildCategoryItem('T-Shirt', Icons.checkroom),
-            _buildCategoryItem('Kids', Icons.child_care),
-            _buildCategoryItem('Pants', Icons.accessibility_new),
-            _buildCategoryItem('Adults', Icons.person),
-            _buildCategoryItem('Uniform', Icons.school),
-          ],
-        ),
+        child: screenWidth < 360 
+            ? Wrap(
+                spacing: screenWidth * 0.05,
+                runSpacing: screenHeight * 0.01,
+                alignment: WrapAlignment.spaceEvenly,
+                children: [
+                  _buildCategoryItem('T-Shirt', Icons.checkroom),
+                  _buildCategoryItem('Kids', Icons.child_care),
+                  _buildCategoryItem('Pants', Icons.accessibility_new),
+                  _buildCategoryItem('Adults', Icons.person),
+                  _buildCategoryItem('Uniform', Icons.school),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildCategoryItem('T-Shirt', Icons.checkroom),
+                  _buildCategoryItem('Kids', Icons.child_care),
+                  _buildCategoryItem('Pants', Icons.accessibility_new),
+                  _buildCategoryItem('Adults', Icons.person),
+                  _buildCategoryItem('Uniform', Icons.school),
+                ],
+              ),
       ),
     );
   }
 
-  Widget _buildAttendanceCard() {
+  Widget _buildAttendanceCard(double screenWidth, double screenHeight) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -140,7 +191,12 @@ class HomePage extends GetView<HomeController> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.fromLTRB(
+          screenWidth * 0.04,     // Horizontal padding
+          screenHeight * 0.02,    // Top padding
+          screenWidth * 0.04,     // Horizontal padding
+          screenHeight * 0.01,    // Bottom padding
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -155,8 +211,8 @@ class HomePage extends GetView<HomeController> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildAttendanceInfo(),
-                _buildAttendanceButton(),
+                _buildAttendanceInfo(screenWidth, screenHeight),
+                _buildAttendanceButton(screenHeight),
               ],
             ),
           ],
@@ -165,58 +221,70 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
-  Widget _buildAttendanceInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Obx(() => Text(
-              controller.hasCheckedIn.value
-                  ? "Anda Sudah Absen"
-                  : 'Anda Belum Absen',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            )),
-        const SizedBox(height: 4),
-        Obx(() => Row(
-              children: [
-                Text(
-                  'Shift ${controller.selectedShift.value} | ',
+  Widget _buildAttendanceInfo(double screenWidth, double screenHeight) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Obx(() => Text(
+                controller.hasCheckedIn.value
+                    ? "Anda Sudah Absen"
+                    : 'Anda Belum Absen',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: screenWidth < 360 ? 18 : 20,
+                ),
+                overflow: TextOverflow.ellipsis,
+              )),
+          SizedBox(height: screenHeight * 0.005),
+          Obx(() => Row(
+                children: [
+                  Text(
+                    'Shift ${controller.selectedShift.value} | ',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      controller.getShiftTime(controller.selectedShift.value),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              )),
+          Row(
+            children: [
+              const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now()),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  controller.getShiftTime(controller.selectedShift.value),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            )),
-        Row(
-          children: [
-            const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-            const SizedBox(width: 4),
-            Text(
-              DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now()),
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildAttendanceButton() {
+  Widget _buildAttendanceButton(double screenHeight) {
+    // Adjust button height based on screen size
+    final buttonHeight = screenHeight < 600 ? 70.0 : 90.0;
+    
     return Container(
-      height: 90,
+      height: buttonHeight,
       width: 40,
       decoration: BoxDecoration(
         color: const Color(0xFF282828),
@@ -235,9 +303,9 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
-  Widget _buildOutOfStockSection() {
+  Widget _buildOutOfStockSection(double screenWidth, double screenHeight) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: const Color(0xFF282828),
         borderRadius: BorderRadius.circular(16),
@@ -245,20 +313,23 @@ class HomePage extends GetView<HomeController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildOutOfStockHeader(),
-          const SizedBox(height: 4),
+          _buildOutOfStockHeader(screenWidth),
+          SizedBox(height: screenHeight * 0.005),
           const Text(
             'Ayo segera tambah barang!',
             style: TextStyle(color: Colors.grey, fontSize: 12),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: screenHeight * 0.02),
           SizedBox(
-            height: 140,
+            height: screenHeight * 0.17, // Responsive height
             child: ListView(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
               children: [
                 _buildProductItem('Koko Abu / M', '3'),
+                SizedBox(width: screenWidth * 0.03),
                 _buildProductItem('Hem / L', '0'),
+                SizedBox(width: screenWidth * 0.03),
                 _buildProductItem('Koko Abu / S', '2'),
               ],
             ),
@@ -268,7 +339,7 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
-  Widget _buildOutOfStockHeader() {
+  Widget _buildOutOfStockHeader(double screenWidth) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -311,6 +382,7 @@ class HomePage extends GetView<HomeController> {
 
   Widget _buildCategoryItem(String title, IconData icon) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.all(10),
@@ -331,6 +403,7 @@ class HomePage extends GetView<HomeController> {
             color: Colors.white,
             fontSize: 12,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -341,14 +414,14 @@ class HomePage extends GetView<HomeController> {
 
     return Container(
       width: 100,
-      margin: const EdgeInsets.only(right: 12),
+      margin: const EdgeInsets.only(right: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             height: 100,
             width: 100,
-            margin: const EdgeInsets.only(top: 10),
+            margin: const EdgeInsets.only(top: 5),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -411,6 +484,8 @@ class HomePage extends GetView<HomeController> {
               fontSize: 12,
               fontWeight: FontWeight.w400,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ],
       ),

@@ -84,6 +84,7 @@ class _GudangPageState extends State<GudangPage> {
     final RenderBox renderBox =
         key.currentContext!.findRenderObject() as RenderBox;
     final position = renderBox.localToGlobal(Offset.zero);
+    final screenSize = MediaQuery.of(context).size;
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Stack(
@@ -96,13 +97,14 @@ class _GudangPageState extends State<GudangPage> {
           ),
           Positioned(
             top: position.dy + renderBox.size.height + 5,
-            left: 16, // Changed from 'right' to 'left' to match the UI
+            left: 16, // Left aligned dropdown
             child: Material(
               elevation: 4,
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 constraints: BoxConstraints(
-                  maxHeight: 250,
+                  maxHeight: screenSize.height * 0.4, // Responsive height
+                  maxWidth: screenSize.width * 0.45, // Responsive width
                 ),
                 width: 150,
                 decoration: BoxDecoration(
@@ -110,7 +112,7 @@ class _GudangPageState extends State<GudangPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: SingleChildScrollView(
-                  // Add scrolling
+                  physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: filterOptions.map((option) {
@@ -158,17 +160,33 @@ class _GudangPageState extends State<GudangPage> {
   @override
   Widget build(BuildContext context) {
     final filterButtonKey = GlobalKey();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Responsive paddings and sizes
+    final horizontalPadding = screenWidth * 0.04;
+    final verticalPadding = screenHeight * 0.02;
+    final cardBorderRadius = 16.0;
+
+    // Calculate responsive grid items for different screen sizes
+    final crossAxisCount = screenWidth < 360 ? 1 : 2;
+    final childAspectRatio = screenWidth < 360 ? 0.8 : 0.7;
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Search bar
                 Container(
-                  margin: const EdgeInsets.only(top: 12.0, bottom: 16.0),
+                  margin: EdgeInsets.only(
+                    top: verticalPadding,
+                    bottom: verticalPadding,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(30),
@@ -197,11 +215,13 @@ class _GudangPageState extends State<GudangPage> {
                     ),
                   ),
                 ),
+
+                // Out of stock section
                 Container(
-                  padding: EdgeInsets.all(16),
+                  padding: EdgeInsets.all(horizontalPadding),
                   decoration: BoxDecoration(
                     color: Color(0xFF282828),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(cardBorderRadius),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,18 +234,19 @@ class _GudangPageState extends State<GudangPage> {
                           fontSize: 18,
                         ),
                       ),
-                      SizedBox(height: 10),
+                      SizedBox(height: verticalPadding * 0.5),
                       SizedBox(
-                        height: 140,
+                        height: screenHeight * 0.17, // Responsive height
                         child: ListView(
                           scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
                           children: [
                             _buildProductItem('Koko Abu / M', '3'),
-                            SizedBox(width: 12),
+                            SizedBox(width: horizontalPadding * 0.5),
                             _buildProductItem('Hem / L', '0'),
-                            SizedBox(width: 12),
+                            SizedBox(width: horizontalPadding * 0.5),
                             _buildProductItem('Koko Abu / S', '2'),
-                            SizedBox(width: 12),
+                            SizedBox(width: horizontalPadding * 0.5),
                             _buildMoreButton(),
                           ],
                         ),
@@ -233,9 +254,11 @@ class _GudangPageState extends State<GudangPage> {
                     ],
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16.0),
-                  child: Text(
+
+                // Category header
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: verticalPadding),
+                  child: const Text(
                     'Category',
                     style: TextStyle(
                       fontSize: 20,
@@ -243,76 +266,112 @@ class _GudangPageState extends State<GudangPage> {
                     ),
                   ),
                 ),
+
+                // Categories
                 Container(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: verticalPadding),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(cardBorderRadius),
                   ),
+                  child: screenWidth < 360
+                      ? Wrap(
+                          spacing: horizontalPadding,
+                          runSpacing: verticalPadding,
+                          alignment: WrapAlignment.spaceEvenly,
+                          children: [
+                            _buildCategoryItem('T-Shirt', Icons.checkroom),
+                            _buildCategoryItem(
+                                'Pants', Icons.accessibility_new),
+                            _buildCategoryItem('Kids', Icons.child_care),
+                            _buildCategoryItem('Adults', Icons.person),
+                            _buildCategoryItem('Uniform', Icons.school),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildCategoryItem('T-Shirt', Icons.checkroom),
+                            _buildCategoryItem(
+                                'Pants', Icons.accessibility_new),
+                            _buildCategoryItem('Kids', Icons.child_care),
+                            _buildCategoryItem('Adults', Icons.person),
+                            _buildCategoryItem('Uniform', Icons.school),
+                          ],
+                        ),
+                ),
+
+                // Filter button and gudang header
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: verticalPadding),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildCategoryItem('T-Shirt', Icons.checkroom),
-                      _buildCategoryItem('Pants', Icons.accessibility_new),
-                      _buildCategoryItem('Kids', Icons.child_care),
-                      _buildCategoryItem('Adults', Icons.person),
-                      _buildCategoryItem('Uniform', Icons.school),
+                      // Filter button
+                      GestureDetector(
+                        key: filterButtonKey,
+                        onTap: () {
+                          _showDropdownMenu(context, filterButtonKey);
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.tune,
+                              size: 22,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Gudang title
+                      const Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12.0),
+                          child: Text(
+                            'Gudang',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+
+                      // Total items counter
+                      GetBuilder<GudangController>(
+                        builder: (controller) => Text(
+                          'Total : ${controller.filteredItems.length} barang',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
+
+                // Products grid
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: GestureDetector(
-                    key: filterButtonKey,
-                    onTap: () {
-                      _showDropdownMenu(context, filterButtonKey);
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.tune,
-                          size: 22,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Gudang',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    GetBuilder<GudangController>(
-                      builder: (controller) => Text(
-                        'Total : ${controller.filteredItems.length} barang',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12.0),
+                  padding: EdgeInsets.only(top: verticalPadding * 0.5),
                   child: GetBuilder<GudangController>(
                     builder: (controller) {
                       if (controller.isLoading) {
                         return Center(
-                          child: CircularProgressIndicator(
-                            color: primaryGreen,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                vertical: verticalPadding * 2),
+                            child: CircularProgressIndicator(
+                              color: primaryGreen,
+                            ),
                           ),
                         );
                       }
@@ -320,7 +379,8 @@ class _GudangPageState extends State<GudangPage> {
                       if (controller.filteredItems.isEmpty) {
                         return Center(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 30.0),
+                            padding: EdgeInsets.symmetric(
+                                vertical: verticalPadding * 2),
                             child: Column(
                               children: [
                                 Icon(
@@ -328,7 +388,7 @@ class _GudangPageState extends State<GudangPage> {
                                   size: 48,
                                   color: Colors.grey[400],
                                 ),
-                                SizedBox(height: 16),
+                                SizedBox(height: verticalPadding),
                                 Text(
                                   'No items found',
                                   style: TextStyle(
@@ -346,10 +406,10 @@ class _GudangPageState extends State<GudangPage> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.7,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
+                          crossAxisCount: crossAxisCount,
+                          childAspectRatio: childAspectRatio,
+                          crossAxisSpacing: horizontalPadding,
+                          mainAxisSpacing: verticalPadding,
                         ),
                         itemCount: controller.filteredItems.length,
                         itemBuilder: (context, index) {
@@ -360,6 +420,9 @@ class _GudangPageState extends State<GudangPage> {
                     },
                   ),
                 ),
+
+                // Bottom padding to avoid navigation bar overlap
+                SizedBox(height: screenHeight * 0.1),
               ],
             ),
           ),
@@ -481,6 +544,7 @@ class _GudangPageState extends State<GudangPage> {
               fontSize: 12,
               fontWeight: FontWeight.w400,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -489,6 +553,7 @@ class _GudangPageState extends State<GudangPage> {
 
   Widget _buildCategoryItem(String title, IconData icon) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: EdgeInsets.all(10),
@@ -509,6 +574,7 @@ class _GudangPageState extends State<GudangPage> {
             color: Colors.black,
             fontSize: 12,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -535,6 +601,8 @@ class _GudangPageState extends State<GudangPage> {
                   child: Image.asset(
                     'assets/images/clothes.jpg',
                     fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: primaryGreen.withOpacity(0.7),

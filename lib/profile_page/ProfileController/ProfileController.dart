@@ -26,10 +26,21 @@ class ProfileController extends GetxController {
     errorMessage.value = '';
 
     try {
+      // First try to get user data from local storage
+      final localUserData = await _storageService.getUserData();
+      if (localUserData != null && localUserData.containsKey('name')) {
+        username.value = localUserData['name'];
+        print('Loaded username from storage: ${username.value}');
+      }
+      
+      // Then try to refresh from API if we have a token
       final token = await _storageService.getToken();
       if (token == null) {
-        errorMessage.value = 'Sesi login telah berakhir';
-        Get.offAllNamed('/login');
+        if (localUserData == null) {
+          // Only redirect if we couldn't get data from storage either
+          errorMessage.value = 'Sesi login telah berakhir';
+          Get.offAllNamed('/login');
+        }
         return;
       }
 
@@ -37,11 +48,15 @@ class ProfileController extends GetxController {
       if (userData.containsKey('name')) {
         username.value = userData['name'];
         await _storageService.saveUserData(userData); // Update cached user data
+        print('Updated username from API: ${username.value}');
       } else {
         errorMessage.value = 'Data pengguna tidak lengkap';
       }
     } catch (e) {
-      errorMessage.value = 'Gagal memuat data pengguna';
+      // If we have a username from storage, don't show an error
+      if (username.value.isEmpty) {
+        errorMessage.value = 'Gagal memuat data pengguna';
+      }
       print('Error loading user data: $e');
     } finally {
       isLoading.value = false;

@@ -21,11 +21,22 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // No specific responsive changes needed here since it's just a stack with the StartPage
+    // and a centered loading indicator, which are already responsive by default
     return Stack(
       children: [
         const StartPage(),
         Obx(() => controller.isLoading.value
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: const CircularProgressIndicator(),
+                ),
+              )
             : const SizedBox.shrink()),
       ],
     );

@@ -1,13 +1,19 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:kliktoko/storage/storage_service.dart';
 
 class SharedAttendanceController extends GetxController {
+  
   static SharedAttendanceController get to => Get.find();
 
   // Observable variables for attendance state
   final RxBool hasCheckedIn = false.obs;
   final RxString selectedShift = '1'.obs;
   final RxDouble attendancePercentage = 0.85.obs;
+  final RxString username = ''.obs;
+  
+  // Storage service for user data
+  final StorageService _storageService = StorageService();
 
   // Automatically determine shift based on current time
   void determineShift() {
@@ -48,13 +54,30 @@ class SharedAttendanceController extends GetxController {
     return DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
   }
 
+  // Load user data from storage
+  Future<void> loadUserData() async {
+    try {
+      await _storageService.init();
+      final userData = await _storageService.getUserData();
+      if (userData != null && userData.containsKey('name')) {
+        username.value = userData['name'];
+        print('Loaded username from storage in SharedAttendanceController: ${username.value}');
+      }
+    } catch (e) {
+      print('Error loading user data in SharedAttendanceController: $e');
+    }
+  }
+
   @override
   void onInit() {
     super.onInit();
     determineShift(); // Set initial shift based on current time
+    loadUserData(); // Load user data from storage
     // Schedule periodic shift updates
     ever(selectedShift, (_) => determineShift());
   }
 
-  void setShift(String shiftNumber) {}
+  void setShift(String shiftNumber) {
+    selectedShift.value = shiftNumber;
+  }
 }
