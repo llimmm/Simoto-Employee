@@ -32,7 +32,7 @@ class ProfileController extends GetxController {
         username.value = localUserData['name'];
         print('Loaded username from storage: ${username.value}');
       }
-      
+
       // Then try to refresh from API if we have a token
       final token = await _storageService.getToken();
       if (token == null) {
@@ -81,7 +81,36 @@ class ProfileController extends GetxController {
     Navigator.pushNamed(context, '/theme');
   }
 
-  void logout(BuildContext context) {
-    Navigator.pushNamed(context, '/logout');
+  Future<void> logout(BuildContext context) async {
+    try {
+      isLoading.value = true; // Show loading state
+      
+      // Clear all user data from storage
+      await _storageService.clearAllUserData();
+      
+      // Reset controller states
+      username.value = '';
+      errorMessage.value = '';
+      
+      // Show success message (optional)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logout berhasil')),
+      );
+      
+      // Navigate to start page (replace the entire navigation stack)
+      Get.offAllNamed('/start');
+    } catch (e) {
+      print('Error during logout: $e');
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Terjadi kesalahan saat logout')),
+      );
+      
+      // Still try to navigate to start page even if there's an error
+      Get.offAllNamed('/start');
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../navigation/NavController.dart';
 import '../HomeController/HomeController.dart';
 import 'package:intl/intl.dart';
+import '../../../gudang_page/GudangModel/ProductModel.dart';
 
 class HomePage extends GetView<HomeController> {
   const HomePage({Key? key}) : super(key: key);
@@ -13,41 +14,45 @@ class HomePage extends GetView<HomeController> {
     if (!Get.isRegistered<HomeController>()) {
       Get.put(HomeController());
     }
-    
+
     // Get screen dimensions for responsive design
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Call loadUserData explicitly to ensure username is loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.loadUserData();
+      controller.checkAuthAndLoadData();
     });
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F9E9), // Light green background color
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-                screenWidth * 0.04,    // Horizontal padding (4% of screen width)
-                screenHeight * 0.04,   // Top padding (4% of screen height)
-                screenWidth * 0.04,    // Horizontal padding (4% of screen width)
-                screenWidth * 0.04),   // Bottom padding (4% of screen width)
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top header with profile and notification
-                _buildHeader(screenWidth),
-                SizedBox(height: screenHeight * 0.04),
-                // Layered cards - Attendance status and Category cards
-                _buildLayeredCards(screenWidth, screenHeight),
-                SizedBox(height: screenHeight * 0.025),
-                // Out of stock section
-                _buildOutOfStockSection(screenWidth, screenHeight),
-                // Add extra space at the bottom to avoid navigation bar overlap
-                SizedBox(height: screenHeight * 0.08),
-              ],
+        child: RefreshIndicator(
+          onRefresh: () => controller.loadProducts(),
+          color: const Color(0xFFA9CD47),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                  screenWidth * 0.04, // Horizontal padding (4% of screen width)
+                  screenHeight * 0.04, // Top padding (4% of screen height)
+                  screenWidth * 0.04, // Horizontal padding (4% of screen width)
+                  screenWidth * 0.04), // Bottom padding (4% of screen width)
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top header with profile and notification
+                  _buildHeader(screenWidth),
+                  SizedBox(height: screenHeight * 0.04),
+                  // Layered cards - Attendance status and Category cards
+                  _buildLayeredCards(screenWidth, screenHeight),
+                  SizedBox(height: screenHeight * 0.025),
+                  // Out of stock section
+                  _buildOutOfStockSection(screenWidth, screenHeight),
+                  // Add extra space at the bottom to avoid navigation bar overlap
+                  SizedBox(height: screenHeight * 0.08),
+                ],
+              ),
             ),
           ),
         ),
@@ -77,7 +82,7 @@ class HomePage extends GetView<HomeController> {
                     // Use Obx to reactively update the username
                     Obx(() {
                       return Text(
-                        controller.username.value.isNotEmpty 
+                        controller.username.value.isNotEmpty
                             ? controller.username.value
                             : 'User',
                         style: const TextStyle(
@@ -131,14 +136,12 @@ class HomePage extends GetView<HomeController> {
   Widget _buildCategoryCard(double screenWidth, double screenHeight) {
     // Calculate responsive vertical position of category card
     final topPadding = screenHeight < 600 ? 70.0 : 80.0;
-    
+
     return Padding(
       padding: EdgeInsets.only(top: topPadding),
       child: Container(
         padding: EdgeInsets.only(
-          top: screenHeight * 0.1, 
-          bottom: screenHeight * 0.02
-        ),
+            top: screenHeight * 0.1, bottom: screenHeight * 0.02),
         decoration: BoxDecoration(
           color: const Color(0xFF282828),
           borderRadius: BorderRadius.circular(16),
@@ -150,7 +153,7 @@ class HomePage extends GetView<HomeController> {
             ),
           ],
         ),
-        child: screenWidth < 360 
+        child: screenWidth < 360
             ? Wrap(
                 spacing: screenWidth * 0.05,
                 runSpacing: screenHeight * 0.01,
@@ -192,10 +195,10 @@ class HomePage extends GetView<HomeController> {
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          screenWidth * 0.04,     // Horizontal padding
-          screenHeight * 0.02,    // Top padding
-          screenWidth * 0.04,     // Horizontal padding
-          screenHeight * 0.01,    // Bottom padding
+          screenWidth * 0.04, // Horizontal padding
+          screenHeight * 0.02, // Top padding
+          screenWidth * 0.04, // Horizontal padding
+          screenHeight * 0.01, // Bottom padding
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,7 +267,8 @@ class HomePage extends GetView<HomeController> {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now()),
+                  DateFormat('EEEE, d MMMM yyyy', 'id_ID')
+                      .format(DateTime.now()),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -282,7 +286,7 @@ class HomePage extends GetView<HomeController> {
   Widget _buildAttendanceButton(double screenHeight) {
     // Adjust button height based on screen size
     final buttonHeight = screenHeight < 600 ? 70.0 : 90.0;
-    
+
     return Container(
       height: buttonHeight,
       width: 40,
@@ -304,6 +308,9 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget _buildOutOfStockSection(double screenWidth, double screenHeight) {
+    // Primary green color
+    final Color primaryGreen = Color(0xFFA9CD47);
+
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
@@ -322,17 +329,85 @@ class HomePage extends GetView<HomeController> {
           SizedBox(height: screenHeight * 0.02),
           SizedBox(
             height: screenHeight * 0.17, // Responsive height
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              children: [
-                _buildProductItem('Koko Abu / M', '3'),
-                SizedBox(width: screenWidth * 0.03),
-                _buildProductItem('Hem / L', '0'),
-                SizedBox(width: screenWidth * 0.03),
-                _buildProductItem('Koko Abu / S', '2'),
-              ],
-            ),
+            child: Obx(() {
+              // Show error message if there's an error
+              if (controller.hasError.value) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline,
+                          color: Colors.red[300], size: 30),
+                      SizedBox(height: 8),
+                      Text(
+                        controller.errorMessage.value,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (controller.errorMessage.value
+                          .contains('session')) ...[
+                        SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => Get.offAllNamed('/login'),
+                          style: TextButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: Text(
+                            'Login',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }
+
+              // Show loading indicator
+              if (controller.isLoading.value) {
+                return Center(
+                  child: CircularProgressIndicator(
+                    color: primaryGreen,
+                  ),
+                );
+              }
+
+              final outOfStockItems =
+                  controller.getOutOfStockItemsForDisplay(3);
+
+              // Show message if no items
+              if (outOfStockItems.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No out of stock items',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                );
+              }
+
+              // Display the items
+              return ListView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  ...outOfStockItems.map((item) => _buildProductItem(item)),
+                  SizedBox(width: screenWidth * 0.03),
+                  if (controller.outOfStockProducts.length > 3)
+                    _buildMoreButton(primaryGreen),
+                ],
+              );
+            }),
           ),
         ],
       ),
@@ -380,6 +455,44 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
+  Widget _buildMoreButton(Color primaryGreen) {
+    return Container(
+      width: 35,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            height: 30,
+            width: 30,
+            margin: EdgeInsets.only(top: 43),
+            child: Container(
+              decoration: BoxDecoration(
+                color: primaryGreen,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.chevron_right,
+                  color: Colors.black,
+                  size: 25,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'More',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategoryItem(String title, IconData icon) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -409,12 +522,13 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
-  Widget _buildProductItem(String title, String badge) {
-    bool isOutOfStock = badge == '0';
+  Widget _buildProductItem(Product item) {
+    // Primary green color
+    final Color primaryGreen = Color(0xFFA9CD47);
 
     return Container(
       width: 100,
-      margin: const EdgeInsets.only(right: 0),
+      margin: const EdgeInsets.only(right: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -427,48 +541,85 @@ class HomePage extends GetView<HomeController> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFA9CD47),
+                    color: primaryGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                if (isOutOfStock)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.black.withOpacity(0.7),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'SOLD OUT',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                  child: item.image != null && item.image!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            item.image!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              print('Error loading image: $error');
+                              return Center(
+                                child: Icon(
+                                  Icons.checkroom,
+                                  size: 40,
+                                  color: Colors.white,
+                                ),
+                              );
+                            },
                           ),
+                        )
+                      : Center(
+                          child: Icon(
+                            Icons.checkroom,
+                            size: 40,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.black.withOpacity(0.7),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'SOLD OUT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                       ),
                     ),
                   ),
-                if (!isOutOfStock && badge != '0')
+                ),
+                if (item.code != null)
                   Positioned(
-                    top: -10,
-                    right: -7,
+                    top: 5,
+                    left: 5,
                     child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Center(
-                        child: Text(
-                          badge,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      child: Text(
+                        item.code!,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -476,9 +627,9 @@ class HomePage extends GetView<HomeController> {
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
-            title,
+            '${item.name} / ${item.size}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 12,

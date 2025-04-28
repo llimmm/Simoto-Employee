@@ -122,13 +122,13 @@ class ProfilePage extends StatelessWidget {
                           context: context,
                           icon: Icons.brightness_6,
                           title: 'Ubah Tampilan',
-                          onTap: () => Navigator.pushNamed(context, '/theme'),
+                          onTap: () => controller.goToThemeSettings(context),
                         ),
                         _buildMenuItem(
                           context: context,
                           icon: Icons.logout,
                           title: 'Keluar',
-                          onTap: () => Navigator.pushNamed(context, '/logout'),
+                          onTap: () => _showLogoutConfirmation(context),
                         ),
                       ],
                     ),
@@ -141,6 +141,32 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  // Show logout confirmation dialog
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Konfirmasi Keluar'),
+          content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                controller.logout(context); // Call the logout function
+              },
+              child: const Text('Keluar', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
   }
 

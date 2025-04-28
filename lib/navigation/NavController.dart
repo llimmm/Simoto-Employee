@@ -10,14 +10,12 @@ class NavController extends GetxController {
   static NavController get to => Get.find();
   final _selectedIndex = 0.obs;
 
-  // You'll need to create these additional pages
+  // Define the main pages for the navigation bar
   final List<Widget> pages = [
     HomePage(key: ValueKey("HomePage")),
     const GudangPage(key: ValueKey("GudangPage")),
-    const CameraPage(
-        key: ValueKey("AddPage")), // Will not be shown, just a placeholder
-    const AttendancePage(
-        key: ValueKey("AttendancePage")), // Create a calendar page
+    Container(key: ValueKey("PlaceholderPage")), // Placeholder for camera button
+    const AttendancePage(key: ValueKey("AttendancePage")),
     ProfilePage(key: ValueKey("ProfilePage")),
   ];
 
@@ -25,46 +23,61 @@ class NavController extends GetxController {
   set selectedIndex(int value) => _selectedIndex.value = value;
 
   void changePage(int index) {
-    // Skip index 2 which is the add button
-    if (index != 2 && _selectedIndex.value != index) {
+    // If it's the camera button (index 2)
+    if (index == 2) {
+      openQRScanner();
+    } 
+    // Otherwise, change to the selected page
+    else if (_selectedIndex.value != index) {
       _selectedIndex.value = index;
-    } else if (index == 2) {
-      // The add button is handled separately
-      handleAddButton();
     }
   }
 
-  void handleAddButton() {
-    // Handle add button press - show a dialog, bottom sheet, or navigate to a form
-    Get.bottomSheet(
-      Container(
-        height: 300,
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Add New Item',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            const Text('Form content would go here'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Get.back(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB5DE42),
-                foregroundColor: Colors.black,
-              ),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      ),
+  // Method to open the QR scanner
+  Future<void> openQRScanner() async {
+    try {
+      final result = await Get.to(() => const CameraPage());
+      
+      if (result != null) {
+        // Handle the scanned QR code result
+        processScannedCode(result);
+      }
+    } catch (e) {
+      print('Error opening camera: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to open camera. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[400],
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // Process the scanned QR code
+  void processScannedCode(String code) {
+    print('Scanned QR code: $code');
+    
+    // Show a success message
+    Get.snackbar(
+      'QR Code Scanned',
+      'Successfully scanned: $code',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: const Color(0xFFAED15C),
+      colorText: Colors.black,
+      duration: Duration(seconds: 3),
     );
+
+    // TODO: Add your business logic to process the QR code
+    // For example, you might want to:
+    // - Check if it's a valid product code
+    // - Add item to inventory
+    // - Verify attendance
+    // - etc.
+  }
+
+  // This method is kept for backward compatibility but redirects to the QR scanner
+  void handleAddButton() {
+    openQRScanner();
   }
 }

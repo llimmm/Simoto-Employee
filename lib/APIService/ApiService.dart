@@ -1,12 +1,15 @@
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'dart:math';
 
 import 'package:kliktoko/login_page/LoginModel/LoginModel.dart';
 import 'package:kliktoko/gudang_page/GudangModel/ProductModel.dart';
+import 'package:kliktoko/storage/storage_service.dart';
 
 class ApiService {
   static const String baseUrl = 'https://kliktoko.rplrus.com';
+  static const String imageBaseUrl = 'https://kliktoko.rplrus.com/storage/';
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
@@ -14,6 +17,22 @@ class ApiService {
   ApiService._internal();
 
   final http.Client _client = http.Client();
+  final StorageService _storageService = StorageService();
+
+  // Helper to get full image URL
+  static String getFullImageUrl(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return ''; // Return empty string for null or empty paths
+    }
+    
+    // If already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    
+    // Otherwise, prepend the base URL
+    return '$imageBaseUrl$imagePath';
+  }
 
   Future<LoginResponse> login(LoginModel loginData) async {
     try {
@@ -49,6 +68,12 @@ class ApiService {
 
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
+    } else {
+      // Try to get token from storage if not provided
+      final storedToken = await _storageService.getToken();
+      if (storedToken != null) {
+        headers['Authorization'] = 'Bearer $storedToken';
+      }
     }
 
     return headers;
@@ -99,25 +124,484 @@ class ApiService {
     }
   }
 
+  // Get all products - with token verification
   Future<List<Product>> getProducts() async {
     try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final headers = await _getHeaders(token);
+      print('Fetching products with token: ${token.substring(0, min(token.length, 10))}...');
+      
       final response = await _client.get(
         Uri.parse('$baseUrl/api/products'),
-        headers: await _getHeaders(),
+        headers: headers,
       );
 
+      print('Products API response status: ${response.statusCode}');
+      
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final List<dynamic> productsJson = json.decode(response.body);
-        return productsJson.map((json) => Product.fromJson(json)).toList();
+        final jsonData = json.decode(response.body);
+        print('Products API response body: ${response.body.substring(0, min(response.body.length, 200))}...');
+        
+        List<dynamic> productsJson = [];
+        
+        // Handle different API response structures
+        if (jsonData is List) {
+          productsJson = jsonData;
+        } else if (jsonData is Map && jsonData.containsKey('data') && jsonData['data'] is List) {
+          productsJson = jsonData['data'];
+        } else if (jsonData is Map && jsonData.containsKey('products') && jsonData['products'] is List) {
+          productsJson = jsonData['products'];
+        }
+        
+        print('Parsed ${productsJson.length} products from API');
+        return productsJson.map((item) => Product.fromJson(item)).toList();
       } else {
         throw HttpException(
             'Request failed with status: ${response.statusCode}',
             response.statusCode);
       }
     } catch (e) {
+      print('Error fetching products: $e');
       throw _handleError(e);
     }
   }
+
+  // Get a specific product by ID
+  Future<Product> getProduct(int id) async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.get(
+        Uri.parse('$baseUrl/api/products/$id'),
+        headers: await _getHeaders(token),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        
+        // Handle different API response structures
+        Map<String, dynamic> productJson;
+        if (jsonData is Map && jsonData.containsKey('data')) {
+          productJson = jsonData['data'];
+        } else {
+          productJson = jsonData;
+        }
+        
+        return Product.fromJson(productJson);
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error fetching product details: $e');
+      throw _handleError(e);
+    }
+  }
+
+  // Create a new product
+  Future<Product> createProduct(Product product) async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.post(
+        Uri.parse('$baseUrl/api/products'),
+        headers: await _getHeaders(token),
+        body: json.encode(product.toJson()),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        
+        Map<String, dynamic> productJson;
+        if (jsonData is Map && jsonData.containsKey('data')) {
+          productJson = jsonData['data'];
+        } else {
+          productJson = jsonData;
+        }
+        
+        return Product.fromJson(productJson);
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error creating product: $e');
+      throw _handleError(e);
+    }
+  }
+
+  // Update an existing product
+  Future<Product> updateProduct(int id, Product product) async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.put(
+        Uri.parse('$baseUrl/api/products/$id'),
+        headers: await _getHeaders(token),
+        body: json.encode(product.toJson()),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        
+        Map<String, dynamic> productJson;
+        if (jsonData is Map && jsonData.containsKey('data')) {
+          productJson = jsonData['data'];
+        } else {
+          productJson = jsonData;
+        }
+        
+        return Product.fromJson(productJson);
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error updating product: $e');
+      throw _handleError(e);
+    }
+  }
+
+  // Delete a product
+  Future<bool> deleteProduct(int id) async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.delete(
+        Uri.parse('$baseUrl/api/products/$id'),
+        headers: await _getHeaders(token),
+      );
+
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      print('Error deleting product: $e');
+      throw _handleError(e);
+    }
+  }
+
+  // Check in - UPDATED VERSION FOR BETTER RELIABILITY
+  Future<Map<String, dynamic>> checkIn(String shiftId) async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      // Uncomment the line below for testing if your API isn't ready
+      // return {'success': true, 'message': 'Check-in successful'};
+      
+      final response = await _client.post(
+        Uri.parse('$baseUrl/api/attendance/check-in'),
+        headers: await _getHeaders(token),
+        body: json.encode({
+          'shift_id': shiftId,
+        }),
+      );
+
+      print('Check-in API response status: ${response.statusCode}');
+      print('Check-in API response body: ${response.body}');
+
+      // Handle different API response structures
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          final jsonData = json.decode(response.body);
+          return jsonData is Map<String, dynamic> ? jsonData : {'success': true};
+        } catch (e) {
+          // If response can't be parsed as JSON but status is still success
+          return {'success': true};
+        }
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error during check-in: $e');
+      // Return failure response rather than throwing to handle in UI
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  // Check out
+  Future<Map<String, dynamic>> checkOut() async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.post(
+        Uri.parse('$baseUrl/api/attendance/check-out'),
+        headers: await _getHeaders(token),
+      );
+
+      print('Check-out API response status: ${response.statusCode}');
+      print('Check-out API response body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          return json.decode(response.body);
+        } catch (e) {
+          // If response can't be parsed as JSON but status is still success
+          return {'success': true};
+        }
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error during check-out: $e');
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  // Get shifts
+  Future<List<Map<String, dynamic>>> getShifts() async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.get(
+        Uri.parse('$baseUrl/api/shifts'),
+        headers: await _getHeaders(token),
+      );
+
+      print('Get shifts API response status: ${response.statusCode}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        
+        List<dynamic> shiftsJson = [];
+        
+        // Handle different API response structures
+        if (jsonData is List) {
+          shiftsJson = jsonData;
+        } else if (jsonData is Map && jsonData.containsKey('data') && jsonData['data'] is List) {
+          shiftsJson = jsonData['data'];
+        } else if (jsonData is Map && jsonData.containsKey('shifts') && jsonData['shifts'] is List) {
+          shiftsJson = jsonData['shifts'];
+        }
+        
+        return shiftsJson.map((item) => item as Map<String, dynamic>).toList();
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error fetching shifts: $e');
+      throw _handleError(e);
+    }
+  }
+
+  // Get attendance history
+  Future<List<Map<String, dynamic>>> getAttendanceHistory() async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.get(
+        Uri.parse('$baseUrl/api/attendance/history'),
+        headers: await _getHeaders(token),
+      );
+
+      print('Attendance history API response status: ${response.statusCode}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        
+        List<dynamic> historyJson = [];
+        
+        // Handle different API response structures
+        if (jsonData is List) {
+          historyJson = jsonData;
+        } else if (jsonData is Map && jsonData.containsKey('data') && jsonData['data'] is List) {
+          historyJson = jsonData['data'];
+        } else if (jsonData is Map && jsonData.containsKey('history') && jsonData['history'] is List) {
+          historyJson = jsonData['history'];
+        }
+        
+        return historyJson.map((item) => item as Map<String, dynamic>).toList();
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error fetching attendance history: $e');
+      // Return empty list instead of throwing to avoid breaking UI
+      return [];
+    }
+  }
+
+  // Request leave
+  Future<Map<String, dynamic>> requestLeave(Map<String, dynamic> leaveData) async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.post(
+        Uri.parse('$baseUrl/api/leave/request'),
+        headers: await _getHeaders(token),
+        body: json.encode(leaveData),
+      );
+
+      print('Leave request API response status: ${response.statusCode}');
+      print('Leave request API response body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return json.decode(response.body);
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error requesting leave: $e');
+      throw _handleError(e);
+    }
+  }
+
+  // Get leave history
+  Future<List<Map<String, dynamic>>> getLeaveHistory() async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      final response = await _client.get(
+        Uri.parse('$baseUrl/api/leave/history'),
+        headers: await _getHeaders(token),
+      );
+
+      print('Leave history API response status: ${response.statusCode}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        
+        List<dynamic> historyJson = [];
+        
+        // Handle different API response structures
+        if (jsonData is List) {
+          historyJson = jsonData;
+        } else if (jsonData is Map && jsonData.containsKey('data') && jsonData['data'] is List) {
+          historyJson = jsonData['data'];
+        } else if (jsonData is Map && jsonData.containsKey('history') && jsonData['history'] is List) {
+          historyJson = jsonData['history'];
+        }
+        
+        return historyJson.map((item) => item as Map<String, dynamic>).toList();
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error fetching leave history: $e');
+      // Return empty list instead of throwing to avoid breaking UI
+      return [];
+    }
+  }
+  // Add this method to your ApiService.dart class
+
+// Get today's attendance status
+Future<Map<String, dynamic>> getAttendanceStatus() async {
+  try {
+    // Make sure to check if token exists first
+    final token = await _storageService.getToken();
+    if (token == null) {
+      throw HttpException('No authentication token available. Please login first.', 401);
+    }
+    
+    // Get current date in API expected format
+    final today = DateTime.now();
+    final todayStr = DateFormat('yyyy-MM-dd').format(today);
+    
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/attendance/status?date=$todayStr'),
+      headers: await _getHeaders(token),
+    );
+
+    print('Attendance status API response status: ${response.statusCode}');
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      try {
+        final jsonData = json.decode(response.body);
+        print('Attendance status response: $jsonData');
+        return jsonData is Map<String, dynamic> ? jsonData : {'is_checked_in': false};
+      } catch (e) {
+        print('Error parsing attendance status response: $e');
+        return {'is_checked_in': false};
+      }
+    } else {
+      // Try getting from history as fallback
+      return await _getAttendanceStatusFromHistory(todayStr);
+    }
+  } catch (e) {
+    print('Error checking attendance status: $e');
+    return {'is_checked_in': false, 'error': e.toString()};
+  }
+}
+
+// Helper method to extract attendance status from history
+Future<Map<String, dynamic>> _getAttendanceStatusFromHistory(String dateStr) async {
+  try {
+    final history = await getAttendanceHistory();
+    
+    // Find entry for specified date
+    final todayEntry = history.where((item) {
+      final itemDate = item['date'] ?? item['created_at'] ?? '';
+      return itemDate.toString().contains(dateStr);
+    }).toList();
+    
+    if (todayEntry.isNotEmpty) {
+      return {'is_checked_in': true, 'data': todayEntry.first};
+    } else {
+      return {'is_checked_in': false};
+    }
+  } catch (e) {
+    print('Error getting attendance from history: $e');
+    return {'is_checked_in': false, 'error': e.toString()};
+  }
+}
 }
 
 class HttpException implements Exception {

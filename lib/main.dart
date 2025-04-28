@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kliktoko/attendance_page/SharedAttendanceController.dart';
 import 'package:kliktoko/home_page/HomeBindings/HomeBindings.dart';
@@ -16,13 +15,13 @@ import 'package:kliktoko/storage/storage_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
-  
+
   // Initialize storage service and SharedAttendanceController
   final storageService = Get.put(StorageService());
   await storageService.init();
-  Get.put(SharedAttendanceController(), permanent: true);  // Add this line
-  Get.put(HomeController(), permanent: true);  // Add this line
-  
+  Get.put(SharedAttendanceController(), permanent: true); // Add this line
+  Get.put(HomeController(), permanent: true); // Add this line
+
   runApp(const MyApp());
 }
 
@@ -32,8 +31,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Simoto Employee',
-      initialRoute: '/',  // Changed from '/start' to '/' to match the route definition
+      initialRoute:
+          '/', // Changed from '/start' to '/' to match the route definition
       getPages: [
         GetPage(
           name: '/',
@@ -70,4 +71,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

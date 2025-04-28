@@ -39,12 +39,33 @@ class StorageService {
     return token;
   }
 
-  Future<void> clearLoginData() async {
+  Future<void> clearAllUserData() async {
     await init();
-    await _prefs.remove(tokenKey);
-    await _prefs.remove(userDataKey);
+    
+    // First clear specific keys for user data and authentication
+    final keysToRemove = [tokenKey, userDataKey, isLoggedInKey];
+    
+    print('Starting to clear all user data...');
+    for (var key in keysToRemove) {
+      if (_prefs.containsKey(key)) {
+        await _prefs.remove(key);
+        print('Removed key: $key');
+      }
+    }
+    
+    // Set logged in status explicitly to false for clarity
     await _prefs.setBool(isLoggedInKey, false);
-    print('Login data cleared');
+    
+    // Get all keys to check if there are any additional user-related data
+    final allKeys = _prefs.getKeys();
+    print('Remaining keys in storage: ${allKeys.length}');
+    
+    print('All user data cleared successfully');
+  }
+
+  // This method is now just a wrapper for clearAllUserData() for backwards compatibility
+  Future<void> clearLoginData() async {
+    await clearAllUserData();
   }
 
   Future<void> saveUserData(Map<String, dynamic> userData) async {
@@ -53,7 +74,7 @@ class StorageService {
     await _prefs.setString(userDataKey, jsonData);
     print('User data saved: $userData');
   }
-  
+
   Future<Map<String, dynamic>?> getUserData() async {
     await init();
     final String? userDataString = _prefs.getString(userDataKey);
@@ -71,7 +92,7 @@ class StorageService {
       return null;
     }
   }
-  
+
   // Helper to limit string length for logging
   int min(int a, int b) {
     return a < b ? a : b;
