@@ -7,28 +7,33 @@ import '../../../gudang_page/GudangModel/ProductModel.dart';
 
 class HomePage extends GetView<HomeController> {
   const HomePage({Key? key}) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     // Make sure controller is initialized and registered with Get
     if (!Get.isRegistered<HomeController>()) {
       Get.put(HomeController());
     }
-
     // Get screen dimensions for responsive design
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
     // Call loadUserData explicitly to ensure username is loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.checkAuthAndLoadData();
     });
-
     return Scaffold(
       backgroundColor: const Color(0xFFF1F9E9), // Light green background color
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () => controller.loadProducts(),
+          onRefresh: () async {
+            await controller.loadProducts();
+            // Also refresh attendance status when pulling to refresh
+            try {
+              await controller.attendanceController.checkAttendanceStatus();
+            } catch (e) {
+              print('Error refreshing attendance status: $e');
+            }
+            return;
+          },
           color: const Color(0xFFA9CD47),
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -68,10 +73,10 @@ class HomePage extends GetView<HomeController> {
           child: Row(
             children: [
               // Profile picture
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 20,
-                backgroundColor: Colors.grey,
-                backgroundImage: AssetImage('assets/profile_pic.jpg'),
+                backgroundColor: Colors.grey[300],
+                backgroundImage: const AssetImage('assets/profile_pic.jpg'),
               ),
               SizedBox(width: screenWidth * 0.03),
               // Welcome text
@@ -192,14 +197,10 @@ class HomePage extends GetView<HomeController> {
             offset: const Offset(0, 2),
           ),
         ],
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          screenWidth * 0.04, // Horizontal padding
-          screenHeight * 0.02, // Top padding
-          screenWidth * 0.04, // Horizontal padding
-          screenHeight * 0.01, // Bottom padding
-        ),
+        padding: EdgeInsets.all(screenWidth * 0.0399),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -210,7 +211,9 @@ class HomePage extends GetView<HomeController> {
                 color: Colors.grey[600],
               ),
             ),
-            const SizedBox(height: 0),
+            SizedBox(
+                height:
+                    2), // Jarak sangat dikurangi menjadi nilai fixed 2 pixel
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -236,34 +239,55 @@ class HomePage extends GetView<HomeController> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: screenWidth < 360 ? 18 : 20,
+                  color: controller.hasCheckedIn.value
+                      ? Colors.green[700]
+                      : Colors.red[700],
                 ),
                 overflow: TextOverflow.ellipsis,
               )),
           SizedBox(height: screenHeight * 0.005),
-          Obx(() => Row(
-                children: [
-                  Text(
-                    'Shift ${controller.selectedShift.value} | ',
+          Obx(() {
+            // Get shift time
+            final shiftTime =
+                controller.getShiftTime(controller.selectedShift.value);
+
+            // Check if it's "Selamat Malam!" message
+            final bool isEveningMessage = shiftTime == 'Selamat Malam!';
+
+            return isEveningMessage
+                ? Text(
+                    shiftTime,
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
                     ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      controller.getShiftTime(controller.selectedShift.value),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                  )
+                : Row(
+                    children: [
+                      Text(
+                        'Shift ${controller.selectedShift.value} | ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              )),
+                      Expanded(
+                        child: Text(
+                          shiftTime,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  );
+          }),
+          SizedBox(height: screenHeight * 0.005),
           Row(
             children: [
-              const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+              Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -287,15 +311,23 @@ class HomePage extends GetView<HomeController> {
     // Adjust button height based on screen size
     final buttonHeight = screenHeight < 600 ? 70.0 : 90.0;
 
-    return Container(
-      height: buttonHeight,
-      width: 40,
-      decoration: BoxDecoration(
-        color: const Color(0xFF282828),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: GestureDetector(
-        onTap: () => Get.find<NavController>().changePage(3),
+    return GestureDetector(
+      onTap: () => Get.find<NavController>().changePage(3),
+      child: Container(
+        height: buttonHeight,
+        width: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFF282828),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: const Center(
           child: Icon(
             Icons.chevron_right,
@@ -341,7 +373,7 @@ class HomePage extends GetView<HomeController> {
                       SizedBox(height: 8),
                       Text(
                         controller.errorMessage.value,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
                         ),
@@ -354,13 +386,13 @@ class HomePage extends GetView<HomeController> {
                           onPressed: () => Get.offAllNamed('/login'),
                           style: TextButton.styleFrom(
                             backgroundColor: primaryGreen,
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: Text(
+                          child: const Text(
                             'Login',
                             style: TextStyle(color: Colors.black),
                           ),
@@ -385,9 +417,9 @@ class HomePage extends GetView<HomeController> {
 
               // Show message if no items
               if (outOfStockItems.isEmpty) {
-                return Center(
+                return const Center(
                   child: Text(
-                    'No out of stock items',
+                    'Tidak ada barang yang habis',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -456,7 +488,7 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget _buildMoreButton(Color primaryGreen) {
-    return Container(
+    return SizedBox(
       width: 35,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -464,23 +496,21 @@ class HomePage extends GetView<HomeController> {
           Container(
             height: 30,
             width: 30,
-            margin: EdgeInsets.only(top: 43),
-            child: Container(
-              decoration: BoxDecoration(
-                color: primaryGreen,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.chevron_right,
-                  color: Colors.black,
-                  size: 25,
-                ),
+            margin: const EdgeInsets.only(top: 43),
+            decoration: BoxDecoration(
+              color: primaryGreen,
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.chevron_right,
+                color: Colors.black,
+                size: 25,
               ),
             ),
           ),
-          SizedBox(height: 6),
-          Text(
+          const SizedBox(height: 6),
+          const Text(
             'More',
             style: TextStyle(
               color: Colors.white,
@@ -568,7 +598,7 @@ class HomePage extends GetView<HomeController> {
                             },
                             errorBuilder: (context, error, stackTrace) {
                               print('Error loading image: $error');
-                              return Center(
+                              return const Center(
                                 child: Icon(
                                   Icons.checkroom,
                                   size: 40,
@@ -578,7 +608,7 @@ class HomePage extends GetView<HomeController> {
                             },
                           ),
                         )
-                      : Center(
+                      : const Center(
                           child: Icon(
                             Icons.checkroom,
                             size: 40,
@@ -609,14 +639,15 @@ class HomePage extends GetView<HomeController> {
                     top: 5,
                     left: 5,
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         item.code!,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.black,
                           fontSize: 8,
                           fontWeight: FontWeight.w500,
@@ -627,7 +658,7 @@ class HomePage extends GetView<HomeController> {
               ],
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
             '${item.name} / ${item.size}',
             style: const TextStyle(

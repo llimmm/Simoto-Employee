@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../gudang_page/GudangControllers/GudangController.dart';
+import '../ReusablePage/detailpage.dart'; // Import the new detail page
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
@@ -15,6 +17,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   bool _isFlashOn = false;
   bool _isProcessingCode = false;
   MobileScannerController? _controller;
+  final GudangController _gudangController = Get.find<GudangController>();
 
   @override
   void initState() {
@@ -22,67 +25,156 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _requestCameraPermission();
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Improved lifecycle management
     if (_controller == null) return;
-    
-    if (state == AppLifecycleState.resumed) {
-      _controller?.start();
-    } else if (state == AppLifecycleState.inactive) {
-      _controller?.stop();
+
+    try {
+      if (state == AppLifecycleState.resumed) {
+        _controller?.start();
+      } else if (state == AppLifecycleState.inactive ||
+          state == AppLifecycleState.paused ||
+          state == AppLifecycleState.detached) {
+        _controller?.stop();
+      }
+    } catch (e) {
+      debugPrint('Error in lifecycle management: $e');
     }
   }
 
   Future<void> _requestCameraPermission() async {
-    final status = await Permission.camera.request();
-    setState(() {
-      _isCameraPermissionGranted = status.isGranted;
-      if (_isCameraPermissionGranted) {
-        _initializeScanner();
+    try {
+      final status = await Permission.camera.request();
+
+      // Check if widget is still mounted before updating state
+      if (!mounted) return;
+
+      setState(() {
+        _isCameraPermissionGranted = status.isGranted;
+        if (_isCameraPermissionGranted) {
+          _initializeScanner();
+        }
+      });
+    } catch (e) {
+      debugPrint('Error requesting camera permission: $e');
+      // Show user-friendly error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error accessing camera permissions: $e')),
+        );
       }
-    });
+    }
   }
 
   void _initializeScanner() {
-    _controller = MobileScannerController(
-      facing: CameraFacing.back,
-      torchEnabled: _isFlashOn,
-    );
+    try {
+      _controller = MobileScannerController(
+        facing: CameraFacing.back,
+        torchEnabled: _isFlashOn,
+      );
+      _controller?.start();
+    } catch (e) {
+      debugPrint('Error initializing scanner: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error initializing camera: $e')),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _controller?.dispose();
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+      _controller?.dispose();
+    } catch (e) {
+      debugPrint('Error disposing camera controller: $e');
+    }
     super.dispose();
   }
-  
-  // Toggle flash
+
+  // Toggle flash with error handling
   void _toggleFlash() async {
-    setState(() {
-      _isFlashOn = !_isFlashOn;
-    });
-    await _controller?.toggleTorch();
+    try {
+      setState(() {
+        _isFlashOn = !_isFlashOn;
+      });
+      await _controller?.toggleTorch();
+    } catch (e) {
+      // Revert state if failed
+      if (mounted) {
+        setState(() {
+          _isFlashOn = !_isFlashOn;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not toggle flash: $e')),
+        );
+      }
+    }
   }
-  
-  // Process the QR code data
+
+  // Process the QR code data with improved error handling
   void _processQRCode(String code) async {
     if (_isProcessingCode) return;
-    
+
     setState(() {
       _isProcessingCode = true;
     });
-    
-    // Pause scanning
-    await _controller?.stop();
-    
-    // Show result overlay
-    _showScanResultOverlay(code);
+
+    try {
+      // Pause scanning
+      await _controller?.stop();
+
+      // Search for product by the scanned code
+      final foundProduct = await _searchProductByCode(code);
+
+      // Show result overlay
+      _showScanResultOverlay(code, foundProduct);
+    } catch (e) {
+      debugPrint('Error processing QR code: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error processing code: $e')),
+        );
+      }
+      _resetScanner();
+    }
   }
-  
-  // Show result overlay with animation
-  void _showScanResultOverlay(String code) {
+
+  // New method to search product by code
+  Future<dynamic> _searchProductByCode(String code) async {
+    // Trim and clean the code
+    final cleanCode = code.trim();
+    
+    // Search for product by code using the controller
+    final product = _gudangController.findProductByCode(cleanCode);
+    
+    // If product found, return it
+    if (product != null) {
+      return product;
+    }
+    
+    // If not found, try to search by updating the search query
+    // This will trigger a search in the inventory items
+    _gudangController.updateSearchQuery(cleanCode);
+    
+    // Check if any results after filtering
+    if (_gudangController.filteredItems.isNotEmpty) {
+      // Return the first match
+      return _gudangController.filteredItems.first;
+    }
+    
+    // No product found
+    return null;
+  }
+
+  // Updated to show product if found
+  void _showScanResultOverlay(String code, dynamic foundProduct) {
+    if (!mounted) return;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -114,13 +206,13 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
               margin: EdgeInsets.only(bottom: 20),
             ),
             Icon(
-              Icons.check_circle,
-              color: Colors.green,
+              foundProduct != null ? Icons.check_circle : Icons.info_outline,
+              color: foundProduct != null ? Colors.green : Colors.orange,
               size: 60,
             ),
             SizedBox(height: 20),
             Text(
-              'QR Code Scanned',
+              foundProduct != null ? 'Product Found' : 'Code Scanned',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -133,10 +225,40 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(
-                code,
-                style: TextStyle(fontSize: 14),
-                textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  SelectableText(
+                    code,
+                    style: TextStyle(fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (foundProduct != null) ...[
+                    SizedBox(height: 10),
+                    Divider(),
+                    SizedBox(height: 10),
+                    Text(
+                      foundProduct.name,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      "Size: ${foundProduct.size} • Stock: ${foundProduct.stock}",
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      "Rp.${foundProduct.price.toStringAsFixed(0)}",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFA9CD47),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             SizedBox(height: 30),
@@ -155,18 +277,33 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                   ),
                   child: Text('Scan Again'),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Get.back(result: code); // Return the QR code value
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFAED15C),
-                    foregroundColor: Colors.black,
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                if (foundProduct != null)
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // Navigate to product detail page
+                      Get.to(() => ProductDetailPage(product: foundProduct));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFAED15C),
+                      foregroundColor: Colors.black,
+                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    ),
+                    child: Text('View Details'),
+                  )
+                else
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Get.back(result: code); // Return the QR code value
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFAED15C),
+                      foregroundColor: Colors.black,
+                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    ),
+                    child: Text('Confirm'),
                   ),
-                  child: Text('Confirm'),
-                ),
               ],
             ),
             SizedBox(height: 20),
@@ -174,18 +311,29 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
         ),
       ),
     ).then((_) {
-      if (_isProcessingCode) {
+      if (mounted && _isProcessingCode) {
         _resetScanner();
       }
     });
   }
-  
+
   // Reset scanner after processing a code
   void _resetScanner() {
+    if (!mounted) return;
+
     setState(() {
       _isProcessingCode = false;
     });
-    _controller?.start();
+
+    try {
+      _controller?.start();
+    } catch (e) {
+      debugPrint('Error resetting scanner: $e');
+      // Attempt to reinitialize if needed
+      if (_controller == null) {
+        _initializeScanner();
+      }
+    }
   }
 
   @override
@@ -199,20 +347,49 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
       body: SafeArea(
         child: Stack(
           children: [
-            // Scanner View
-            MobileScanner(
-              controller: _controller,
-              onDetect: (capture) {
-                final List<Barcode> barcodes = capture.barcodes;
-                if (barcodes.isNotEmpty && !_isProcessingCode) {
-                  final Barcode barcode = barcodes.first;
-                  if (barcode.rawValue != null) {
-                    _processQRCode(barcode.rawValue!);
-                  }
-                }
-              },
-            ),
-            
+            // Scanner View with error handling
+            _controller == null
+                ? _buildLoadingIndicator()
+                : MobileScanner(
+                    controller: _controller,
+                    onDetect: (capture) {
+                      try {
+                        final List<Barcode> barcodes = capture.barcodes;
+                        if (barcodes.isNotEmpty && !_isProcessingCode) {
+                          final Barcode barcode = barcodes.first;
+                          if (barcode.rawValue != null) {
+                            _processQRCode(barcode.rawValue!);
+                          }
+                        }
+                      } catch (e) {
+                        debugPrint('Error detecting barcode: $e');
+                      }
+                    },
+                    errorBuilder: (context, error, child) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error, color: Colors.red, size: 50),
+                            SizedBox(height: 10),
+                            Text(
+                              'Camera Error: ${error.errorCode}',
+                              style: TextStyle(color: Colors.white),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: () {
+                                _initializeScanner();
+                              },
+                              child: Text('Try Again'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
             // Scan overlay
             Center(
               child: Container(
@@ -220,7 +397,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 height: MediaQuery.of(context).size.width * 0.7,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: _isProcessingCode 
+                    color: _isProcessingCode
                         ? Colors.grey
                         : const Color(0xFFAED15C),
                     width: 3,
@@ -229,7 +406,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 ),
               ),
             ),
-            
+
             // Top Controls
             Positioned(
               top: 20,
@@ -239,11 +416,12 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    icon:
+                        const Icon(Icons.close, color: Colors.white, size: 30),
                     onPressed: () => Get.back(),
                   ),
                   Text(
-                    'Scan QR Code',
+                    'Scan Product Code',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -261,13 +439,14 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 ],
               ),
             ),
-            
+
             // Bottom Instructions
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
                 margin: const EdgeInsets.only(bottom: 50),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(30),
@@ -282,7 +461,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                     ),
                     SizedBox(width: 10),
                     Text(
-                      'Position the QR code in the frame',
+                      'Position the barcode in the frame',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -297,7 +476,26 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
       ),
     );
   }
-  
+
+  // Loading indicator when camera is initializing
+  Widget _buildLoadingIndicator() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(
+            color: const Color(0xFFAED15C),
+          ),
+          SizedBox(height: 20),
+          Text(
+            'Initializing camera...',
+            style: TextStyle(color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Screen shown when camera permission is denied
   Widget _buildPermissionDeniedScreen() {
     return Scaffold(
@@ -326,7 +524,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'Please grant camera permission to scan QR codes.',
+                  'Please grant camera permission to scan product codes.',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey[700],
@@ -336,13 +534,23 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 SizedBox(height: 30),
                 ElevatedButton(
                   onPressed: () async {
-                    final status = await Permission.camera.request();
-                    setState(() {
-                      _isCameraPermissionGranted = status.isGranted;
-                      if (_isCameraPermissionGranted) {
-                        _initializeScanner();
-                      }
-                    });
+                    try {
+                      final status = await Permission.camera.request();
+
+                      if (!mounted) return;
+
+                      setState(() {
+                        _isCameraPermissionGranted = status.isGranted;
+                        if (_isCameraPermissionGranted) {
+                          _initializeScanner();
+                        } else if (status.isPermanentlyDenied) {
+                          // Show settings dialog if permission permanently denied
+                          _showOpenSettingsDialog();
+                        }
+                      });
+                    } catch (e) {
+                      debugPrint('Error requesting permission: $e');
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFAED15C),
@@ -368,6 +576,35 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // Show dialog to open app settings if permission permanently denied
+  void _showOpenSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Camera Permission'),
+        content: Text(
+          'Camera permission was permanently denied. Please open settings to enable it manually.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFAED15C),
+            ),
+            child: Text('Open Settings'),
+          ),
+        ],
       ),
     );
   }

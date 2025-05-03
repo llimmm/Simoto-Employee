@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kliktoko/home_page/HomeController/HomeController.dart';
+import 'package:kliktoko/ReusablePage/detailpage.dart';
 import '../GudangControllers/GudangController.dart';
 import '../GudangModel/ProductModel.dart';
 
@@ -11,7 +12,8 @@ class GudangPage extends StatefulWidget {
   State<GudangPage> createState() => _GudangPageState();
 }
 
-class _GudangPageState extends State<GudangPage> {
+class _GudangPageState extends State<GudangPage>
+    with SingleTickerProviderStateMixin {
   final GudangController controller = Get.put(GudangController());
   late HomeController homeController;
 
@@ -156,6 +158,11 @@ class _GudangPageState extends State<GudangPage> {
     Overlay.of(context).insert(_overlayEntry!);
     isDropdownVisible = true;
     setState(() {});
+  }
+
+  // Method to navigate to product detail page
+  void _navigateToProductDetail(Product product) {
+    Get.to(() => ProductDetailPage(product: product));
   }
 
   @override
@@ -533,121 +540,127 @@ class _GudangPageState extends State<GudangPage> {
   }
 
   Widget _buildProductItemFromOutOfStock(Product item) {
-    return Container(
-      width: 100,
-      margin: EdgeInsets.only(right: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 100,
-            width: 100,
-            margin: EdgeInsets.only(top: 10),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: primaryGreen,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: item.image != null && item.image!.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            item.image!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes !=
-                                          null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Error loading image: $error');
-                              return Container(
-                                color: primaryGreen,
-                                child: Center(
-                                  child: Icon(
-                                    Icons.checkroom,
-                                    size: 40,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                      : Center(
-                          child: Icon(
-                            Icons.checkroom,
-                            size: 40,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-                Positioned.fill(
-                  child: Container(
+    return GestureDetector(
+      onTap: () => _navigateToProductDetail(item),
+      child: Container(
+        width: 100,
+        margin: EdgeInsets.only(right: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 100,
+              width: 100,
+              margin: EdgeInsets.only(top: 10),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
                     decoration: BoxDecoration(
+                      color: primaryGreen,
                       borderRadius: BorderRadius.circular(12),
-                      color: Colors.black.withOpacity(0.7),
                     ),
-                    child: Center(
-                      child: Text(
-                        'SOLD OUT',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
+                    child: item.image != null && item.image!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              item.image!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                print('Error loading image: $error');
+                                return Container(
+                                  color: primaryGreen,
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.checkroom,
+                                      size: 40,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              Icons.checkroom,
+                              size: 40,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
-                ),
-                if (item.code != null)
-                  Positioned(
-                    top: 5,
-                    left: 5,
+                  Positioned.fill(
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black.withOpacity(0.7),
                       ),
-                      child: Text(
-                        item.code!,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w500,
+                      child: Center(
+                        child: Text(
+                          'SOLD OUT',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
                   ),
-              ],
+                  if (item.code != null)
+                    Positioned(
+                      top: 5,
+                      left: 5,
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          item.code!,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          SizedBox(height: 6),
-          Text(
-            '${item.name} / ${item.size}',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
+            SizedBox(height: 6),
+            Text(
+              '${item.name} / ${item.size}',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -690,177 +703,190 @@ class _GudangPageState extends State<GudangPage> {
     final bool isOutOfStock = item.stock == 0;
     final bool isNew = item.isNew;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[200],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: item.image != null && item.image!.isNotEmpty
-                      ? Image.network(
-                          item.image!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes !=
-                                        null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                                color: primaryGreen,
-                                strokeWidth: 2,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            print('Error loading image: $error');
-                            return Container(
-                              color: primaryGreen.withOpacity(0.7),
-                              child: Center(
-                                child: Icon(
-                                  Icons.checkroom,
-                                  size: 40,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            );
-                          },
-                        )
-                      : Image.asset(
-                          'assets/images/clothes.jpg',
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: primaryGreen.withOpacity(0.7),
-                              child: Center(
-                                child: Icon(
-                                  Icons.checkroom,
-                                  size: 40,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ),
-              if (isOutOfStock)
-                Positioned.fill(
-                  child: Container(
+    return GestureDetector(
+      onTap: () => _navigateToProductDetail(item),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: Colors.transparent,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: Colors.black.withOpacity(0.7),
+                      color: Colors.grey[200],
                     ),
-                    child: Center(
-                      child: Text(
-                        'SOLD OUT',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: item.image != null && item.image!.isNotEmpty
+                          ? Image.network(
+                              item.image!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color: primaryGreen,
+                                    strokeWidth: 2,
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                print('Error loading image: $error');
+                                return Container(
+                                  color: primaryGreen.withOpacity(0.7),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.checkroom,
+                                      size: 40,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : Image.asset(
+                              'assets/images/clothes.jpg',
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: primaryGreen.withOpacity(0.7),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.checkroom,
+                                      size: 40,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ),
+                  if (isOutOfStock)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black.withOpacity(0.7),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'SOLD OUT',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              if (!isOutOfStock && item.stock > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${item.stock}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                  if (!isOutOfStock && item.stock > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${item.stock}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              if (isNew)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF181C1D),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'NEW',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                  if (isNew)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF181C1D),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'NEW',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              if (item.code != null)
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      item.code!,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w500,
+                  if (item.code != null)
+                    Positioned(
+                      bottom: 8,
+                      left: 8,
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          item.code!,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-            ],
-          ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${item.name} / ${item.size}',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              'Rp.${item.price.toStringAsFixed(0)}',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          '${item.name} / ${item.size}',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text(
-          'Rp.${item.price.toStringAsFixed(0)}',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

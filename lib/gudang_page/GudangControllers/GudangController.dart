@@ -44,15 +44,44 @@ class GudangController extends GetxController {
     ever(selectedFilter, (_) => applyFilter());
 
     // Listen to tab changes from NavController
+    // Fixed: Use the public getter for selectedIndex instead of the private _selectedIndex
     if (Get.isRegistered<NavController>()) {
       final navController = Get.find<NavController>();
-      navController.selectedIndex.listen((_) => closeDropdown());
+      // Create a reactive wrapper for the selectedIndex
+      RxInt selectedIndexRx = navController.selectedIndex.obs;
+
+      // Watch for changes to the selectedIndex via the public getter
+      ever(selectedIndexRx, (_) => closeDropdown());
+
+      // Update our reactive wrapper whenever the tab changes
+      ever(navController.selectedIndex.obs, (index) {
+        selectedIndexRx.value = index as int;
+      });
     }
 
     // Simplified route handling
+    // Track changes in the current route and close dropdown when route changes
     ever(RxString(Get.currentRoute), (_) {
       closeDropdown();
     });
+  }
+
+  // Add new method to find a product by code
+  Product? findProductByCode(String code) {
+    // First check if code is empty
+    if (code.isEmpty) return null;
+
+    // Search in all inventory items
+    for (var product in inventoryItems) {
+      // Check if product has a code and it matches the scanned code
+      if (product.code != null &&
+          product.code!.toLowerCase() == code.toLowerCase()) {
+        return product;
+      }
+    }
+
+    // No match found
+    return null;
   }
 
   Future<void> checkAuthAndLoadData() async {
@@ -65,7 +94,7 @@ class GudangController extends GetxController {
       hasError = true;
       errorMessage = 'You need to login first to view inventory.';
       update();
-      
+
       // Delay the navigation to allow the error message to be seen
       Future.delayed(Duration(seconds: 2), () {
         Get.offAllNamed('/login');
@@ -86,7 +115,7 @@ class GudangController extends GetxController {
         hasError = true;
         errorMessage = 'Authentication token not found. Please log in again.';
         update();
-        
+
         // Redirect to login after showing error message
         Future.delayed(Duration(seconds: 2), () {
           Get.offAllNamed('/login');
@@ -96,30 +125,31 @@ class GudangController extends GetxController {
 
       // Fetch products from API
       inventoryItems = await _apiService.getProducts();
-      
+
       // Extract out of stock items for special display
-      outOfStockItems = inventoryItems.where((item) => item.stock == 0).toList();
-      
+      outOfStockItems =
+          inventoryItems.where((item) => item.stock == 0).toList();
+
       // Update the HomeController if it's registered
       if (Get.isRegistered<HomeController>()) {
         final homeController = Get.find<HomeController>();
         homeController.outOfStockProducts.value = outOfStockItems;
       }
-      
+
       applyFilter();
-      
+
       print('Loaded ${inventoryItems.length} products from API');
       print('Found ${outOfStockItems.length} out of stock items');
     } catch (e) {
       print('Error loading inventory data: $e');
       hasError = true;
-      
+
       // Check if it's an auth error
       if (e is HttpException && e.statusCode == 401) {
         errorMessage = 'Your session has expired. Please log in again.';
         // Clear login data and redirect to login
         await _storageService.clearLoginData();
-        
+
         // Delay navigation to allow error message to be seen
         Future.delayed(Duration(seconds: 2), () {
           Get.offAllNamed('/login');
@@ -127,7 +157,7 @@ class GudangController extends GetxController {
       } else {
         errorMessage = 'Failed to load products. Please try again later.';
       }
-      
+
       inventoryItems = [];
       outOfStockItems = [];
       filteredItems = [];
@@ -157,7 +187,8 @@ class GudangController extends GetxController {
           .where((item) =>
               item.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
               item.size.toLowerCase().contains(searchQuery.toLowerCase()) ||
-              (item.code != null && item.code!.toLowerCase().contains(searchQuery.toLowerCase())))
+              (item.code != null &&
+                  item.code!.toLowerCase().contains(searchQuery.toLowerCase())))
           .toList();
     }
 
@@ -206,14 +237,14 @@ class GudangController extends GetxController {
     try {
       isLoading = true;
       update();
-      
+
       await _apiService.createProduct(product);
       await loadInventoryData(); // Reload the data after creation
-      
+
       return true;
     } catch (e) {
       print('Error creating product: $e');
-      
+
       // Check if it's an auth error
       if (e is HttpException && e.statusCode == 401) {
         errorMessage = 'Your session has expired. Please log in again.';
@@ -223,7 +254,7 @@ class GudangController extends GetxController {
           Get.offAllNamed('/login');
         });
       }
-      
+
       return false;
     } finally {
       isLoading = false;
@@ -236,14 +267,14 @@ class GudangController extends GetxController {
     try {
       isLoading = true;
       update();
-      
+
       await _apiService.updateProduct(id, product);
       await loadInventoryData(); // Reload the data after update
-      
+
       return true;
     } catch (e) {
       print('Error updating product: $e');
-      
+
       // Check if it's an auth error
       if (e is HttpException && e.statusCode == 401) {
         errorMessage = 'Your session has expired. Please log in again.';
@@ -253,7 +284,7 @@ class GudangController extends GetxController {
           Get.offAllNamed('/login');
         });
       }
-      
+
       return false;
     } finally {
       isLoading = false;
@@ -266,14 +297,14 @@ class GudangController extends GetxController {
     try {
       isLoading = true;
       update();
-      
+
       final result = await _apiService.deleteProduct(id);
       await loadInventoryData(); // Reload the data after deletion
-      
+
       return result;
     } catch (e) {
       print('Error deleting product: $e');
-      
+
       // Check if it's an auth error
       if (e is HttpException && e.statusCode == 401) {
         errorMessage = 'Your session has expired. Please log in again.';
@@ -283,7 +314,7 @@ class GudangController extends GetxController {
           Get.offAllNamed('/login');
         });
       }
-      
+
       return false;
     } finally {
       isLoading = false;
@@ -319,8 +350,4 @@ class GudangController extends GetxController {
     // Clean up resources if needed
     super.onClose();
   }
-}
-
-extension on int {
-  void listen(void Function(dynamic _) param0) {}
 }

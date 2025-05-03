@@ -7,49 +7,56 @@ class LoginBottomSheet extends GetView<LoginController> {
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<LoginController>()) {
-      Get.put(LoginController());
-    }
-
     // Get screen dimensions for responsive design
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Calculate responsive height (60% of screen height)
-    final sheetHeight = screenHeight * 0.60;
+    // Get the keyboard height using viewInsets
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     // Calculate responsive paddings
     final horizontalPadding = screenWidth * 0.05;
     final verticalSpacing = screenHeight * 0.02;
 
-    return Material(
-      child: Container(
-        height: sheetHeight,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.white, Colors.grey[50]!],
+    return Padding(
+      // Add padding to account for keyboard height
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          // Use minimum height instead of fixed height to allow expansion
+          constraints: BoxConstraints(
+            minHeight: screenHeight * 0.60,
+            maxHeight: screenHeight * 0.90, // Maximum height constraint
           ),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 10,
-              offset: const Offset(0, -1),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Colors.grey[50]!],
             ),
-          ],
-        ),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: sheetHeight,
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 10,
+                offset: const Offset(0, -1),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            // This enables scrolling when keyboard appears
+            physics: const BouncingScrollPhysics(),
             child: Padding(
-              padding: EdgeInsets.all(horizontalPadding),
+              padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  horizontalPadding,
+                  horizontalPadding,
+                  // Add extra padding at bottom to ensure content is above keyboard
+                  horizontalPadding + (keyboardHeight > 0 ? 20 : 0)),
               child: Column(
+                mainAxisSize: MainAxisSize.min, // Use minimum size
                 children: [
                   SizedBox(height: verticalSpacing),
                   // Title text - adjust font size based on screen width
@@ -96,24 +103,35 @@ class LoginBottomSheet extends GetView<LoginController> {
                   ),
                   SizedBox(height: verticalSpacing),
 
-                  // Password field
-                  TextField(
-                    controller: controller.passwordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: 'Enter Password....',
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding * 0.8,
-                        vertical: verticalSpacing * 0.8,
-                      ),
-                    ),
-                  ),
+                  // Password field with toggle visibility
+                  Obx(() => TextField(
+                        controller: controller.passwordController,
+                        obscureText: !controller.isPasswordVisible.value,
+                        decoration: InputDecoration(
+                          hintText: 'Enter Password....',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: horizontalPadding * 0.8,
+                            vertical: verticalSpacing * 0.8,
+                          ),
+                          // Add suffix icon for password visibility toggle
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              controller.isPasswordVisible.value
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.grey[600],
+                            ),
+                            onPressed: () =>
+                                controller.togglePasswordVisibility(),
+                          ),
+                        ),
+                      )),
 
                   // Error message (if any)
                   Obx(() => controller.errorMessage.value.isNotEmpty
@@ -159,8 +177,10 @@ class LoginBottomSheet extends GetView<LoginController> {
                                 ),
                         )),
                   ),
-                  // Add extra padding at the bottom for smaller screens
-                  SizedBox(height: verticalSpacing),
+                  // Add extra padding at the bottom for keyboard
+                  SizedBox(
+                      height: verticalSpacing +
+                          (keyboardHeight > 0 ? keyboardHeight * 0.5 : 0)),
                 ],
               ),
             ),

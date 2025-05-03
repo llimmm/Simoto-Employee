@@ -41,10 +41,10 @@ class StorageService {
 
   Future<void> clearAllUserData() async {
     await init();
-    
+
     // First clear specific keys for user data and authentication
     final keysToRemove = [tokenKey, userDataKey, isLoggedInKey];
-    
+
     print('Starting to clear all user data...');
     for (var key in keysToRemove) {
       if (_prefs.containsKey(key)) {
@@ -52,14 +52,14 @@ class StorageService {
         print('Removed key: $key');
       }
     }
-    
+
     // Set logged in status explicitly to false for clarity
     await _prefs.setBool(isLoggedInKey, false);
-    
+
     // Get all keys to check if there are any additional user-related data
     final allKeys = _prefs.getKeys();
     print('Remaining keys in storage: ${allKeys.length}');
-    
+
     print('All user data cleared successfully');
   }
 

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For haptic feedback
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'splash/splash_screen.dart';
+import 'package:kliktoko/login_page/LoginController/LoginController.dart';
+import 'package:kliktoko/login_page/Loginpage/LoginBottomSheet.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({Key? key}) : super(key: key);
@@ -16,6 +17,9 @@ class _StartPageState extends State<StartPage>
   double _dragValue = 0.0;
   late AnimationController _animationController;
   late Animation<double> _animation;
+
+  // Flag to prevent multiple bottom sheets
+  bool _isBottomSheetShowing = false;
 
   @override
   void initState() {
@@ -62,7 +66,7 @@ class _StartPageState extends State<StartPage>
       _animationController.value = _dragValue;
       _animationController.animateTo(1.0).then((_) {
         Future.delayed(const Duration(milliseconds: 200), () {
-          Get.offAll(() => const SplashScreen());
+          _showLoginBottomSheet(context);
 
           // Reset safely
           if (mounted) {
@@ -80,9 +84,37 @@ class _StartPageState extends State<StartPage>
     }
   }
 
+  // Method to show login bottom sheet with safeguards
+  void _showLoginBottomSheet(BuildContext context) {
+    // Prevent multiple sheets from appearing
+    if (_isBottomSheetShowing) return;
+    _isBottomSheetShowing = true;
+
+    // Register the controller first before showing the sheet
+    if (!Get.isRegistered<LoginController>()) {
+      Get.put(LoginController());
+    }
+
+    // Show the bottom sheet with improved keyboard handling
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Important for keyboard handling
+      backgroundColor: Colors.transparent,
+      // Enable sheet to resize when keyboard appears
+      builder: (context) => const LoginBottomSheet(),
+    ).then((_) {
+      // Reset the flag after sheet is closed with a delay
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _isBottomSheetShowing = false;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Enable resizing to avoid bottom inset (keyboard)
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFF282828),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,

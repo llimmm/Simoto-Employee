@@ -11,11 +11,17 @@ class LoginController extends GetxController {
 
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
+  final RxBool isPasswordVisible = false.obs; // Added for password visibility toggle
 
   @override
   void onInit() {
     super.onInit();
     _storageService.init(); // Initialize storage service early
+  }
+  
+  // Add method to toggle password visibility
+  void togglePasswordVisibility() {
+    isPasswordVisible.toggle();
   }
 
   void login() async {

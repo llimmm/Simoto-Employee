@@ -133,17 +133,29 @@ class HomeController extends GetxController {
     } catch (e) {
       print('Error getting shift time: $e');
       // Default shift times if controller fails
+      final now = DateTime.now();
+      final currentTime = now.hour * 60 + now.minute; // Convert to minutes
+      
       switch (shift) {
         case '1':
           return '08:00 - 14:00';
         case '2':
+          // If current time is after 21:30 (1290 minutes) or before 07:30 (450 minutes),
+          // return "Selamat Malam!" instead of regular shift time
+          if (currentTime >= 1290 || currentTime < 450) {
+            return 'Selamat Malam!';
+          }
           return '14:00 - 21:00';
-        case '3':
-          return '21:00 - 08:00';
         default:
           return '08:00 - 14:00';
       }
     }
+  }
+  
+  // Check if shift time is "Selamat Malam!"
+  bool isEveningMessage() {
+    final shiftTime = getShiftTime(selectedShift.value);
+    return shiftTime == 'Selamat Malam!';
   }
 
   Future<void> loadUserData() async {

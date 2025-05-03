@@ -1,215 +1,279 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:kliktoko/storage/storage_service.dart';
 import 'package:kliktoko/attendance_page/AttendanceModel.dart';
+import 'package:kliktoko/storage/storage_service.dart';
+import 'package:http/http.dart' as http;
 
 class AttendanceApiService {
-  // Use the same base URL as your main ApiService
   static const String baseUrl = 'https://kliktoko.rplrus.com';
-  
-  // Create a singleton instance
-  static final AttendanceApiService _instance = AttendanceApiService._internal();
-  factory AttendanceApiService() => _instance;
-  AttendanceApiService._internal();
   
   final http.Client _client = http.Client();
   final StorageService _storageService = StorageService();
-  
-  // Check attendance status by querying attendance history
-  // This is because there's no direct /status endpoint in the API
+
+  // Check attendance status from server
   Future<AttendanceModel> checkAttendanceStatus() async {
     try {
-      await _storageService.init();
+      // Get token first
       final token = await _storageService.getToken();
-      final userData = await _storageService.getUserData();
-      
       if (token == null) {
-        print('No token available for attendance check');
-        return AttendanceModel.empty();
+        throw Exception('No authentication token available. Please login first.');
       }
       
-      print('Checking attendance with token: ${token.substring(0, _storageService.min(token.length, 10))}...');
-      
-      // Get today's date in API expected format
+      // Get current date in API expected format
       final today = DateTime.now();
       final todayStr = DateFormat('yyyy-MM-dd').format(today);
       
-      // Get the user's attendance history
-      final response = await _client.get(
+      // First try using direct status endpoint
+      try {
+        final statusResponse = await _client.get(
+          Uri.parse('$baseUrl/api/attendance/status?date=$todayStr'),
+          headers: await _getHeaders(token),
+        );
+
+        print('Status API response: ${statusResponse.statusCode}, Body: ${statusResponse.body}');
+        
+        if (statusResponse.statusCode >= 200 && statusResponse.statusCode < 300) {
+          final jsonData = json.decode(statusResponse.body);
+          
+          // Check for different response formats
+          bool isCheckedIn = false;
+          
+          // Parse the response based on different possible formats
+          if (jsonData is Map<String, dynamic>) {
+            // Direct is_checked_in field
+            if (jsonData.containsKey('is_checked_in')) {
+              isCheckedIn = jsonData['is_checked_in'] == true;
+            }
+            // checked_in field
+            else if (jsonData.containsKey('checked_in')) {
+              isCheckedIn = jsonData['checked_in'] == true;
+            }
+            // Status field
+            else if (jsonData.containsKey('status')) {
+              isCheckedIn = jsonData['status'] == 'checked_in' || 
+                           jsonData['status'] == true || 
+                           jsonData['status'] == 1;
+            }
+            // Data wrapper
+            else if (jsonData.containsKey('data') && jsonData['data'] is Map<String, dynamic>) {
+              var data = jsonData['data'];
+              isCheckedIn = data['is_checked_in'] == true || 
+                           data['checked_in'] == true || 
+                           data['status'] == 'checked_in' ||
+                           data['status'] == true;
+            }
+            
+            print('Checked in status detected: $isCheckedIn');
+            
+            // Create model with the check-in status
+            return AttendanceModel(
+              isCheckedIn: isCheckedIn,
+              date: todayStr,
+              shiftId: _extractShiftId(jsonData),
+              checkInTime: _extractCheckInTime(jsonData),
+              username: _extractUsername(jsonData),
+            );
+          }
+        }
+      } catch (e) {
+        print('Error with status endpoint, trying attendance history: $e');
+      }
+      
+      // If status endpoint fails or returns unexpected data, try getting from history
+      print('Attempting to get attendance from history...');
+      final historyResponse = await _client.get(
         Uri.parse('$baseUrl/api/attendance/history'),
-        headers: _getHeaders(token),
+        headers: await _getHeaders(token),
       );
       
-      print('Attendance history API response code: ${response.statusCode}');
-      
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        // Successfully got history, now check if there's an entry for today
-        final jsonData = json.decode(response.body);
-        print('Attendance history response received');
+      if (historyResponse.statusCode >= 200 && historyResponse.statusCode < 300) {
+        final jsonData = json.decode(historyResponse.body);
         
-        List<dynamic> attendanceHistory = [];
+        List<dynamic> historyItems = [];
         
         // Handle different API response structures
         if (jsonData is List) {
-          attendanceHistory = jsonData;
-        } else if (jsonData is Map) {
-          if (jsonData.containsKey('data') && jsonData['data'] is List) {
-            attendanceHistory = jsonData['data'];
-          } else if (jsonData.containsKey('history') && jsonData['history'] is List) {
-            attendanceHistory = jsonData['history'];
-          }
+          historyItems = jsonData;
+        } else if (jsonData is Map && jsonData.containsKey('data') && jsonData['data'] is List) {
+          historyItems = jsonData['data'];
+        } else if (jsonData is Map && jsonData.containsKey('history') && jsonData['history'] is List) {
+          historyItems = jsonData['history'];
         }
         
-        // Find today's entry by date field or created_at field
-        final todayAttendance = attendanceHistory.where((item) {
-          if (item is Map<String, dynamic>) {
-            // Try multiple fields that might contain the date
-            final dateFields = ['date', 'created_at', 'check_in_date', 'attendance_date'];
-            
-            for (String field in dateFields) {
-              if (item.containsKey(field) && item[field] != null) {
-                return item[field].toString().contains(todayStr);
-              }
-            }
+        // Find today's attendance record
+        for (var item in historyItems) {
+          final itemDate = item['date'] ?? item['attendance_date'] ?? item['created_at']?.toString().split(' ')[0] ?? '';
+          if (itemDate.toString().contains(todayStr)) {
+            print('Found today\'s attendance in history: $item');
+            // Create model from history item
+            return AttendanceModel.fromJson(item);
           }
-          return false;
-        }).toList();
-        
-        if (todayAttendance.isNotEmpty && todayAttendance.first is Map<String, dynamic>) {
-          print('✅ Found attendance for today in history: ${todayAttendance.first}');
-          final attendanceData = todayAttendance.first as Map<String, dynamic>;
-          
-          // Set checked in to true since we found an entry
-          attendanceData['checked_in'] = true;
-          
-          // Add user data if available
-          if (userData != null) {
-            if (userData.containsKey('name')) {
-              attendanceData['username'] = userData['name'];
-            }
-            if (userData.containsKey('id')) {
-              attendanceData['user_id'] = userData['id'].toString();
-            }
-          }
-          
-          return AttendanceModel.fromJson(attendanceData);
-        } else {
-          print('❌ No attendance found for today in history');
         }
-      } else {
-        print('❌ Failed to get attendance history: ${response.statusCode}');
       }
       
-      // No attendance found for today
-      return AttendanceModel.empty();
+      // If no data found, assume not checked in
+      print('No attendance data found, assuming not checked in');
+      return AttendanceModel(
+        isCheckedIn: false,
+        date: todayStr,
+        shiftId: '1',
+      );
       
     } catch (e) {
-      print('❌ Error in checkAttendanceStatus: $e');
-      return AttendanceModel.empty();
+      print('Error in checkAttendanceStatus: $e');
+      throw e;
     }
   }
   
-  // Perform check-in
+  // Check in
   Future<AttendanceModel> checkIn(String shiftId) async {
     try {
-      await _storageService.init();
+      // Get token first
       final token = await _storageService.getToken();
-      final userData = await _storageService.getUserData();
-      
       if (token == null) {
-        throw Exception('No authentication token available');
+        throw Exception('No authentication token available. Please login first.');
       }
       
-      print('Checking in with token: ${token.substring(0, _storageService.min(token.length, 10))}...');
-      print('Shift ID: $shiftId');
+      print('Attempting check-in with shift: $shiftId');
       
-      // First verify if already checked in
-      final currentStatus = await checkAttendanceStatus();
-      if (currentStatus.isCheckedIn) {
-        print('Already checked in for today');
-        return currentStatus;
-      }
-      
-      // Send check in request
       final response = await _client.post(
         Uri.parse('$baseUrl/api/attendance/check-in'),
-        headers: _getHeaders(token),
+        headers: await _getHeaders(token),
         body: json.encode({
           'shift_id': shiftId,
         }),
       );
       
-      print('Check-in API response code: ${response.statusCode}');
-      print('Check-in API response body: ${response.body}');
+      print('Check-in API response: ${response.statusCode}, Body: ${response.body}');
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        // Check in successful
-        final jsonData = json.decode(response.body);
+        // Get the current date in the format used by the API
+        final today = DateTime.now();
+        final todayStr = DateFormat('yyyy-MM-dd').format(today);
         
-        // Create a basic attendance model
-        Map<String, dynamic> attendanceData = {
-          'checked_in': true,
-          'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          'shift_id': shiftId,
-          'check_in_time': DateFormat('HH:mm:ss').format(DateTime.now()),
-        };
-        
-        // Add more data if available in response
-        if (jsonData is Map<String, dynamic>) {
-          if (jsonData.containsKey('data') && jsonData['data'] is Map<String, dynamic>) {
-            attendanceData.addAll(jsonData['data']);
-          } else {
-            // Try to extract useful fields
-            final fieldsToExtract = ['id', 'user_id', 'shift_id', 'check_in_time', 'date'];
-            for (String field in fieldsToExtract) {
-              if (jsonData.containsKey(field)) {
-                attendanceData[field] = jsonData[field];
-              }
-            }
-          }
-        }
-        
-        // Add user data if available
-        if (userData != null) {
-          if (userData.containsKey('name')) {
-            attendanceData['username'] = userData['name'];
-          }
-          if (userData.containsKey('id')) {
-            attendanceData['user_id'] = userData['id'].toString();
-          }
-        }
-        
-        print('✅ Check-in successful: $attendanceData');
-        return AttendanceModel.fromJson(attendanceData);
-      } else {
-        // Handle error response
-        String errorMessage = 'Failed to check in';
+        // Try to parse the response
         try {
-          final errorResponse = json.decode(response.body);
-          if (errorResponse is Map<String, dynamic> && 
-              errorResponse.containsKey('message')) {
-            errorMessage = errorResponse['message'];
+          final jsonData = json.decode(response.body);
+          
+          // Create model with successful check-in
+          if (jsonData is Map<String, dynamic>) {
+            print('Successfully parsed check-in response');
+            
+            // Try to extract data from response or use defaults
+            return AttendanceModel(
+              isCheckedIn: true, // Always set to true on successful check-in
+              date: todayStr,
+              shiftId: shiftId,
+              checkInTime: DateFormat('HH:mm:ss').format(DateTime.now()),
+              username: await _getUsernameFromStorage(),
+            );
           }
         } catch (e) {
-          print('Error parsing error response: $e');
+          print('Error parsing check-in response: $e');
         }
         
-        print('❌ Check-in failed: $errorMessage');
-        throw Exception(errorMessage);
+        // If parsing fails but status code is success, return success model
+        return AttendanceModel(
+          isCheckedIn: true,
+          date: todayStr,
+          shiftId: shiftId,
+          checkInTime: DateFormat('HH:mm:ss').format(DateTime.now()),
+          username: await _getUsernameFromStorage(),
+        );
+      } else {
+        print('Check-in failed with status: ${response.statusCode}');
+        throw Exception('Check-in failed with status: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Error during check-in: $e');
+      print('Error in checkIn: $e');
       throw e;
     }
   }
   
-  // Get headers with token
-  Map<String, String> _getHeaders(String token) {
-    return {
+  // Helper methods
+  Future<Map<String, String>> _getHeaders([String? token]) async {
+    final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
     };
+
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    } else {
+      // Try to get token from storage if not provided
+      final storedToken = await _storageService.getToken();
+      if (storedToken != null) {
+        headers['Authorization'] = 'Bearer $storedToken';
+      }
+    }
+
+    return headers;
+  }
+  
+  String _extractShiftId(Map<String, dynamic> jsonData) {
+    // Try different possible field names for shift ID
+    if (jsonData.containsKey('shift_id')) {
+      return jsonData['shift_id'].toString();
+    } else if (jsonData.containsKey('shift')) {
+      return jsonData['shift'].toString();
+    } else if (jsonData.containsKey('data') && jsonData['data'] is Map<String, dynamic>) {
+      var data = jsonData['data'];
+      if (data.containsKey('shift_id')) {
+        return data['shift_id'].toString();
+      } else if (data.containsKey('shift')) {
+        return data['shift'].toString();
+      }
+    }
+    return '1'; // Default shift ID
+  }
+  
+  String? _extractCheckInTime(Map<String, dynamic> jsonData) {
+    // Try different possible field names for check-in time
+    if (jsonData.containsKey('check_in_time')) {
+      return jsonData['check_in_time'];
+    } else if (jsonData.containsKey('check_in')) {
+      return jsonData['check_in'];
+    } else if (jsonData.containsKey('data') && jsonData['data'] is Map<String, dynamic>) {
+      var data = jsonData['data'];
+      if (data.containsKey('check_in_time')) {
+        return data['check_in_time'];
+      } else if (data.containsKey('check_in')) {
+        return data['check_in'];
+      }
+    }
+    return null;
+  }
+  
+  String? _extractUsername(Map<String, dynamic> jsonData) {
+    // Try different possible field names for username
+    if (jsonData.containsKey('username')) {
+      return jsonData['username'];
+    } else if (jsonData.containsKey('user_name')) {
+      return jsonData['user_name'];
+    } else if (jsonData.containsKey('name')) {
+      return jsonData['name'];
+    } else if (jsonData.containsKey('data') && jsonData['data'] is Map<String, dynamic>) {
+      var data = jsonData['data'];
+      if (data.containsKey('username')) {
+        return data['username'];
+      } else if (data.containsKey('user_name')) {
+        return data['user_name'];
+      } else if (data.containsKey('name')) {
+        return data['name'];
+      }
+    }
+    return null;
+  }
+  
+  Future<String?> _getUsernameFromStorage() async {
+    try {
+      final userData = await _storageService.getUserData();
+      if (userData != null) {
+        return userData['name'] ?? userData['username'] ?? null;
+      }
+    } catch (e) {
+      print('Error getting username from storage: $e');
+    }
+    return null;
   }
 }

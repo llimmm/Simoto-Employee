@@ -41,12 +41,14 @@ class SharedAttendanceController extends GetxController {
 
     // Shift 1: 07:30-14:30 (450-870 minutes)
     // Shift 2: 14:30-21:30 (870-1290 minutes)
+    // After Shift 2: Display "Selamat Malam!"
     if (currentTime >= 450 && currentTime < 870) {
       selectedShift.value = '1';
     } else if (currentTime >= 870 && currentTime < 1290) {
       selectedShift.value = '2';
     } else {
-      selectedShift.value = '3';
+      // After Shift 2 or before Shift 1, just show Shift 2 as the last valid shift
+      selectedShift.value = '2';
     }
   }
 
@@ -66,7 +68,7 @@ class SharedAttendanceController extends GetxController {
       }
       
       // Log the check attempt
-      print('🔍 Checking attendance status with token: ${token.substring(0, _storageService.min(token.length, 10))}...');
+      print('🔍 Checking attendance status with token: ${token.substring(0, _min(token.length, 10))}...');
       
       // Check attendance using specialized service
       final attendance = await _attendanceService.checkAttendanceStatus();
@@ -111,11 +113,11 @@ class SharedAttendanceController extends GetxController {
       // Perform check-in using dedicated service
       final checkInResult = await _attendanceService.checkIn(selectedShift.value);
       
-      // Update observable values based on result
-      hasCheckedIn.value = checkInResult.isCheckedIn;
+      // Force updates to the observables
+      hasCheckedIn.value = true; // Force set to true on successful check-in
       currentAttendance.value = checkInResult;
       
-      print('✅ Check-in result: ${hasCheckedIn.value ? "Success" : "Failed"}');
+      print('✅ Check-in completed: Status = ${hasCheckedIn.value}');
       
       // Force refresh after check-in to ensure data is current
       await Future.delayed(Duration(milliseconds: 500));
@@ -133,13 +135,19 @@ class SharedAttendanceController extends GetxController {
 
   // Get formatted shift time
   String getShiftTime(String shift) {
+    final now = DateTime.now();
+    final currentTime = now.hour * 60 + now.minute; // Convert to minutes
+
     switch (shift) {
       case '1':
         return '08:00 - 14:00';
       case '2':
+        // If current time is after 21:30 (1290 minutes) or before 07:30 (450 minutes),
+        // return "Selamat Malam!" instead of regular shift time
+        if (currentTime >= 1290 || currentTime < 450) {
+          return 'Selamat Malam!';
+        }
         return '14:00 - 21:00';
-      case '3':
-        return '21:00 - 08:00';
       default:
         return '08:00 - 14:00';
     }
@@ -192,6 +200,11 @@ class SharedAttendanceController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  // Helper method for min function
+  int _min(int a, int b) {
+    return a < b ? a : b;
   }
 
   @override

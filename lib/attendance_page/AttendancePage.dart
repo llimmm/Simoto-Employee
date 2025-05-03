@@ -90,10 +90,10 @@ class AttendancePage extends GetView<AttendanceController> {
         Expanded(
           child: Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 20,
-                backgroundColor: Colors.grey,
-                backgroundImage: AssetImage('assets/profile_pic.jpg'),
+                backgroundColor: Colors.grey[300],
+                backgroundImage: const AssetImage('assets/profile_pic.jpg'),
               ),
               SizedBox(width: screenWidth * 0.03),
               Expanded(
@@ -146,10 +146,9 @@ class AttendancePage extends GetView<AttendanceController> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.1), // Match HomePage shadow
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
         border: Border.all(color: Colors.grey.shade200),
@@ -165,7 +164,7 @@ class AttendancePage extends GetView<AttendanceController> {
               color: Colors.grey[600],
             ),
           ),
-          SizedBox(height: screenHeight * 0.015),
+          const SizedBox(height: 11.5), // Konsisten dengan nilai HomePage
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -215,36 +214,55 @@ class AttendancePage extends GetView<AttendanceController> {
                       );
                     }),
                     SizedBox(height: screenHeight * 0.005),
-                    Obx(() => Row(
-                          children: [
-                            Text(
-                              'Shift ${controller.selectedShift.value} | ',
+                    Obx(() {
+                      // Get shift time
+                      final shiftTime = controller
+                          .getShiftTime(controller.selectedShift.value);
+
+                      // Check if it's "Selamat Malam!" message
+                      final bool isEveningMessage =
+                          shiftTime == 'Selamat Malam!';
+
+                      return isEveningMessage
+                          ? Text(
+                              shiftTime,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
                               ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                controller.getShiftTime(
-                                    controller.selectedShift.value),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
+                            )
+                          : Row(
+                              children: [
+                                Text(
+                                  'Shift ${controller.selectedShift.value} | ',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        )),
+                                Expanded(
+                                  child: Text(
+                                    shiftTime,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            );
+                    }),
+                    SizedBox(height: screenHeight * 0.005),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today,
-                            size: 14, color: Colors.grey),
+                        Icon(Icons.calendar_today,
+                            size: 14, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            controller.getCurrentDateFormatted(),
+                            DateFormat('EEEE, d MMMM yyyy', 'id_ID')
+                                .format(DateTime.now()),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -257,6 +275,7 @@ class AttendancePage extends GetView<AttendanceController> {
                   ],
                 ),
               ),
+              // Navigation button removed as requested
             ],
           ),
         ],
@@ -280,7 +299,7 @@ class AttendancePage extends GetView<AttendanceController> {
         ],
         border: Border.all(color: Colors.grey.shade200),
       ),
-      padding: EdgeInsets.all(screenWidth * 0.04),
+      padding: EdgeInsets.all(screenWidth * 0.0399),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -292,16 +311,27 @@ class AttendancePage extends GetView<AttendanceController> {
             ),
           ),
           SizedBox(height: screenHeight * 0.015),
-          Obx(() => Text(
-                'Shift ${controller.selectedShift.value} : (${controller.getShiftTime(controller.selectedShift.value)})',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
-              )),
+          Obx(() {
+            // Get shift time
+            final shiftTime =
+                controller.getShiftTime(controller.selectedShift.value);
+
+            // Check if it's "Selamat Malam!" message
+            final bool isEveningMessage = shiftTime == 'Selamat Malam!';
+
+            return Text(
+              isEveningMessage
+                  ? shiftTime // Just show "Selamat Malam!"
+                  : 'Shift ${controller.selectedShift.value} : (${controller.getShiftTime(controller.selectedShift.value)})',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.blue,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            );
+          }),
         ],
       ),
     );
@@ -323,10 +353,7 @@ class AttendancePage extends GetView<AttendanceController> {
         ],
         border: Border.all(color: Colors.grey.shade200),
       ),
-      padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.04,
-        vertical: screenWidth * 0.03,
-      ),
+      padding: EdgeInsets.all(screenWidth * 0.0399),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -422,7 +449,7 @@ class AttendancePage extends GetView<AttendanceController> {
                 controller.hasCheckedIn.value
                     ? 'Absen Berhasil!'
                     : 'Absen Sekarang',
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
