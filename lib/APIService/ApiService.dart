@@ -1,7 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'dart:convert';
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:kliktoko/login_page/LoginModel/LoginModel.dart';
 import 'package:kliktoko/gudang_page/GudangModel/ProductModel.dart';
@@ -36,19 +36,39 @@ class ApiService {
 
   Future<LoginResponse> login(LoginModel loginData) async {
     try {
+      print('Sending login request for user: ${loginData.name}');
+      
       final response = await _client.post(
         Uri.parse('$baseUrl/api/login'),
         headers: await _getHeaders(),
         body: json.encode(loginData.toJson()),
       );
 
-      // Log the response status code and body for debugging
       print('API Response Status Code: ${response.statusCode}');
       print('API Response Body: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return LoginResponse.fromJson(
-            json.decode(response.body)); // Correctly map the response
+        try {
+          final responseData = json.decode(response.body);
+          return LoginResponse.fromJson(responseData);
+        } catch (e) {
+          print('Error parsing login response: $e');
+          // Even if parsing fails but status code is successful, create a basic success response
+          if (response.body.contains('token')) {
+            // Try to extract token using regex as a last resort
+            final RegExp tokenRegex = RegExp(r'"token"\s*:\s*"([^"]+)"');
+            final match = tokenRegex.firstMatch(response.body);
+            final token = match?.group(1) ?? '';
+            
+            return LoginResponse(
+              token: token,
+              message: 'Login successful',
+              success: true,
+              user: {'name': loginData.name},
+            );
+          }
+          throw Exception('Failed to parse login response: $e');
+        }
       } else {
         throw HttpException(
             'Request failed with status: ${response.statusCode}',
@@ -66,14 +86,22 @@ class ApiService {
       'Accept': 'application/json',
     };
 
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
-    } else {
-      // Try to get token from storage if not provided
-      final storedToken = await _storageService.getToken();
-      if (storedToken != null) {
-        headers['Authorization'] = 'Bearer $storedToken';
+    try {
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+        print('Using provided token for request');
+      } else {
+        // Try to get token from storage if not provided
+        final storedToken = await _storageService.getToken();
+        if (storedToken != null && storedToken.isNotEmpty) {
+          headers['Authorization'] = 'Bearer $storedToken';
+          print('Using stored token for request');
+        } else {
+          print('No token available for request');
+        }
       }
+    } catch (e) {
+      print('Error setting auth headers: $e');
     }
 
     return headers;
@@ -86,7 +114,11 @@ class ApiService {
 
   Future<Map<String, dynamic>> getUserData(String token) async {
     try {
-      print('Fetching user data with token: ${token.substring(0, min(token.length, 10))}...');
+      if (token.isEmpty) {
+        throw HttpException('Token is empty', 401);
+      }
+      
+      print('Fetching user data with token: ${token.substring(0, math.min(token.length, 10))}...');
       final response = await _client.get(
         Uri.parse('$baseUrl/api/user'),
         headers: await _getHeaders(token),
@@ -96,23 +128,28 @@ class ApiService {
       print('User data API response body: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        
-        // Extract user data from the response
-        Map<String, dynamic> userData = {};
-        
-        // Handle different API response structures
-        if (responseData.containsKey('data') && responseData['data'] is Map<String, dynamic>) {
-          userData = responseData['data'];
-        } else if (responseData.containsKey('user') && responseData['user'] is Map<String, dynamic>) {
-          userData = responseData['user'];
-        } else {
-          // If no structured data, use the entire response
-          userData = responseData;
+        try {
+          final Map<String, dynamic> responseData = json.decode(response.body);
+          
+          // Extract user data from the response
+          Map<String, dynamic> userData = {};
+          
+          // Handle different API response structures
+          if (responseData.containsKey('data') && responseData['data'] is Map<String, dynamic>) {
+            userData = responseData['data'];
+          } else if (responseData.containsKey('user') && responseData['user'] is Map<String, dynamic>) {
+            userData = responseData['user'];
+          } else {
+            // If no structured data, use the entire response
+            userData = responseData;
+          }
+          
+          print('Parsed user data: $userData');
+          return userData;
+        } catch (e) {
+          print('Error parsing user data: $e');
+          throw Exception('Error parsing user data: $e');
         }
-        
-        print('Parsed user data: $userData');
-        return userData;
       } else {
         throw HttpException(
             'Request failed with status: ${response.statusCode}',
@@ -129,12 +166,12 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
       final headers = await _getHeaders(token);
-      print('Fetching products with token: ${token.substring(0, min(token.length, 10))}...');
+      print('Fetching products with token: ${token.substring(0, math.min(token.length, 10))}...');
       
       final response = await _client.get(
         Uri.parse('$baseUrl/api/products'),
@@ -145,7 +182,7 @@ class ApiService {
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonData = json.decode(response.body);
-        print('Products API response body: ${response.body.substring(0, min(response.body.length, 200))}...');
+        print('Products API response body: ${response.body.substring(0, math.min(response.body.length, 200))}...');
         
         List<dynamic> productsJson = [];
         
@@ -176,7 +213,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -213,7 +250,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -250,7 +287,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -287,7 +324,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -308,7 +345,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -352,7 +389,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -387,7 +424,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -429,7 +466,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -472,7 +509,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -503,7 +540,7 @@ class ApiService {
     try {
       // Make sure to check if token exists first
       final token = await _storageService.getToken();
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw HttpException('No authentication token available. Please login first.', 401);
       }
       
@@ -540,68 +577,112 @@ class ApiService {
       return [];
     }
   }
-  // Add this method to your ApiService.dart class
+  
+  // Get today's attendance status
+  Future<Map<String, dynamic>> getAttendanceStatus() async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null || token.isEmpty) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      // Get current date in API expected format
+      final today = DateTime.now();
+      final todayStr = DateFormat('yyyy-MM-dd').format(today);
+      
+      final response = await _client.get(
+        Uri.parse('$baseUrl/api/attendance/status?date=$todayStr'),
+        headers: await _getHeaders(token),
+      );
 
-// Get today's attendance status
-Future<Map<String, dynamic>> getAttendanceStatus() async {
-  try {
-    // Make sure to check if token exists first
-    final token = await _storageService.getToken();
-    if (token == null) {
-      throw HttpException('No authentication token available. Please login first.', 401);
+      print('Attendance status API response status: ${response.statusCode}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          final jsonData = json.decode(response.body);
+          print('Attendance status response: $jsonData');
+          return jsonData is Map<String, dynamic> ? jsonData : {'is_checked_in': false};
+        } catch (e) {
+          print('Error parsing attendance status response: $e');
+          return {'is_checked_in': false};
+        }
+      } else {
+        // Try getting from history as fallback
+        return await _getAttendanceStatusFromHistory(todayStr);
+      }
+    } catch (e) {
+      print('Error checking attendance status: $e');
+      return {'is_checked_in': false, 'error': e.toString()};
     }
-    
-    // Get current date in API expected format
-    final today = DateTime.now();
-    final todayStr = DateFormat('yyyy-MM-dd').format(today);
-    
-    final response = await _client.get(
-      Uri.parse('$baseUrl/api/attendance/status?date=$todayStr'),
-      headers: await _getHeaders(token),
-    );
+  }
 
-    print('Attendance status API response status: ${response.statusCode}');
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      try {
-        final jsonData = json.decode(response.body);
-        print('Attendance status response: $jsonData');
-        return jsonData is Map<String, dynamic> ? jsonData : {'is_checked_in': false};
-      } catch (e) {
-        print('Error parsing attendance status response: $e');
+  // Helper method to extract attendance status from history
+  Future<Map<String, dynamic>> _getAttendanceStatusFromHistory(String dateStr) async {
+    try {
+      final history = await getAttendanceHistory();
+      
+      // Find entry for specified date
+      final todayEntry = history.where((item) {
+        final itemDate = item['date'] ?? item['created_at'] ?? '';
+        return itemDate.toString().contains(dateStr);
+      }).toList();
+      
+      if (todayEntry.isNotEmpty) {
+        return {'is_checked_in': true, 'data': todayEntry.first};
+      } else {
         return {'is_checked_in': false};
       }
-    } else {
-      // Try getting from history as fallback
-      return await _getAttendanceStatusFromHistory(todayStr);
+    } catch (e) {
+      print('Error getting attendance from history: $e');
+      return {'is_checked_in': false, 'error': e.toString()};
     }
-  } catch (e) {
-    print('Error checking attendance status: $e');
-    return {'is_checked_in': false, 'error': e.toString()};
   }
-}
+  
+  // Get products by category ID
+  Future<List<Product>> getProductsByCategory(int categoryId) async {
+    try {
+      // Make sure to check if token exists first
+      final token = await _storageService.getToken();
+      if (token == null || token.isEmpty) {
+        throw HttpException('No authentication token available. Please login first.', 401);
+      }
+      
+      // Use query parameter to filter by category_id
+      final response = await _client.get(
+        Uri.parse('$baseUrl/api/products?category_id=$categoryId'),
+        headers: await _getHeaders(token),
+      );
 
-// Helper method to extract attendance status from history
-Future<Map<String, dynamic>> _getAttendanceStatusFromHistory(String dateStr) async {
-  try {
-    final history = await getAttendanceHistory();
-    
-    // Find entry for specified date
-    final todayEntry = history.where((item) {
-      final itemDate = item['date'] ?? item['created_at'] ?? '';
-      return itemDate.toString().contains(dateStr);
-    }).toList();
-    
-    if (todayEntry.isNotEmpty) {
-      return {'is_checked_in': true, 'data': todayEntry.first};
-    } else {
-      return {'is_checked_in': false};
+      print('Products by category API response status: ${response.statusCode}');
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        print('Products by category API response body: ${response.body.substring(0, math.min(response.body.length, 200))}...');
+        
+        List<dynamic> productsJson = [];
+        
+        // Handle different API response structures
+        if (jsonData is List) {
+          productsJson = jsonData;
+        } else if (jsonData is Map && jsonData.containsKey('data') && jsonData['data'] is List) {
+          productsJson = jsonData['data'];
+        } else if (jsonData is Map && jsonData.containsKey('products') && jsonData['products'] is List) {
+          productsJson = jsonData['products'];
+        }
+        
+        print('Parsed ${productsJson.length} products for category $categoryId from API');
+        return productsJson.map((item) => Product.fromJson(item)).toList();
+      } else {
+        throw HttpException(
+            'Request failed with status: ${response.statusCode}',
+            response.statusCode);
+      }
+    } catch (e) {
+      print('Error fetching products by category: $e');
+      throw _handleError(e);
     }
-  } catch (e) {
-    print('Error getting attendance from history: $e');
-    return {'is_checked_in': false, 'error': e.toString()};
   }
-}
 }
 
 class HttpException implements Exception {

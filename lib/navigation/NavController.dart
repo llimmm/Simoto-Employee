@@ -7,7 +7,7 @@ import 'package:kliktoko/gudang_page/GudangPage/GudangPage.dart';
 import 'package:kliktoko/profile_page/ProfilePage/ProfilePage.dart';
 import 'package:kliktoko/gudang_page/GudangControllers/GudangController.dart';
 import 'package:kliktoko/gudang_page/GudangModel/ProductModel.dart';
-import 'package:kliktoko/ReusablePage/detailpage.dart';
+import 'package:kliktoko/ReusablePage/detailPage.dart';
 
 class NavController extends GetxController {
   static NavController get to => Get.find();

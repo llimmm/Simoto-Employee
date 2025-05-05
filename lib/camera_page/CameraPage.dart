@@ -3,7 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../gudang_page/GudangControllers/GudangController.dart';
-import '../ReusablePage/detailpage.dart'; // Import the new detail page
+import '../ReusablePage/detailPage.dart'; // Import the new detail page
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
@@ -148,25 +148,25 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   Future<dynamic> _searchProductByCode(String code) async {
     // Trim and clean the code
     final cleanCode = code.trim();
-    
+
     // Search for product by code using the controller
     final product = _gudangController.findProductByCode(cleanCode);
-    
+
     // If product found, return it
     if (product != null) {
       return product;
     }
-    
+
     // If not found, try to search by updating the search query
     // This will trigger a search in the inventory items
     _gudangController.updateSearchQuery(cleanCode);
-    
+
     // Check if any results after filtering
     if (_gudangController.filteredItems.isNotEmpty) {
       // Return the first match
       return _gudangController.filteredItems.first;
     }
-    
+
     // No product found
     return null;
   }
@@ -287,7 +287,8 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFAED15C),
                       foregroundColor: Colors.black,
-                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                     ),
                     child: Text('View Details'),
                   )
@@ -300,7 +301,8 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFAED15C),
                       foregroundColor: Colors.black,
-                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                     ),
                     child: Text('Confirm'),
                   ),
@@ -390,11 +392,12 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                     },
                   ),
 
-            // Scan overlay
+            // Scan overlay - Modified for ISBN size (narrower rectangle)
             Center(
               child: Container(
                 width: MediaQuery.of(context).size.width * 0.7,
-                height: MediaQuery.of(context).size.width * 0.7,
+                height: MediaQuery.of(context).size.width *
+                    0.25, // Changed height to make it rectangular for ISBN
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: _isProcessingCode
@@ -407,7 +410,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
               ),
             ),
 
-            // Top Controls
+            // Top Controls - Updated title
             Positioned(
               top: 20,
               left: 0,
@@ -421,7 +424,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                     onPressed: () => Get.back(),
                   ),
                   Text(
-                    'Scan Product Code',
+                    'Scan ISBN Code', // Updated title
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -440,7 +443,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
               ),
             ),
 
-            // Bottom Instructions
+            // Bottom Instructions - Updated for ISBN
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
@@ -453,21 +456,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      'Position the barcode in the frame',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
+                  children: [],
                 ),
               ),
             ),

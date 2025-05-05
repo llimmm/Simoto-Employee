@@ -1,12 +1,82 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:async';
 import '../../../navigation/NavController.dart';
 import '../HomeController/HomeController.dart';
 import 'package:intl/intl.dart';
 import '../../../gudang_page/GudangModel/ProductModel.dart';
+import 'package:kliktoko/ReusablePage/categoryPage.dart'; // Added import for CategoryPage
+import 'package:kliktoko/gudang_page/GudangModel/CategoryModel.dart'; // Added import for Category model
+import 'package:kliktoko/gudang_page/GudangServices/CategoryService.dart'; // Added import for CategoryService
+
+// Create a separate controller just for the clock
+class ClockController extends GetxController {
+  var timeString = ''.obs;
+  var dateString = ''.obs;
+  Timer? _timer;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Initialize time immediately
+    _updateTime();
+    // Start timer to update every second
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTime());
+  }
+
+  @override
+  void onClose() {
+    _timer?.cancel();
+    super.onClose();
+  }
+
+  void _updateTime() {
+    final now = DateTime.now();
+    timeString.value = DateFormat('HH:mm:ss').format(now);
+    dateString.value = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
+  }
+}
+
+// Simple clock widget
+class ClockWidget extends StatelessWidget {
+  const ClockWidget({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Use Get.put to ensure controller is registered before use
+    final controller = Get.put(ClockController());
+
+    return Center(
+      child: Column(
+        children: [
+          // Current time
+          Obx(() => Text(
+                controller.timeString.value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 40,
+                  color: Color(0xFF282828),
+                ),
+              )),
+          const SizedBox(height: 4),
+          // Current date
+          Obx(() => Text(
+                controller.dateString.value,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+}
 
 class HomePage extends GetView<HomeController> {
   const HomePage({Key? key}) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
     // Make sure controller is initialized and registered with Get
@@ -46,8 +116,8 @@ class HomePage extends GetView<HomeController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top header with profile and notification
-                  _buildHeader(screenWidth),
+                  // Clock at the top
+                  const ClockWidget(),
                   SizedBox(height: screenHeight * 0.04),
                   // Layered cards - Attendance status and Category cards
                   _buildLayeredCards(screenWidth, screenHeight),
@@ -62,66 +132,6 @@ class HomePage extends GetView<HomeController> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHeader(double screenWidth) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Row(
-            children: [
-              // Profile picture
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey[300],
-                backgroundImage: const AssetImage('assets/profile_pic.jpg'),
-              ),
-              SizedBox(width: screenWidth * 0.03),
-              // Welcome text
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Use Obx to reactively update the username
-                    Obx(() {
-                      return Text(
-                        controller.username.value.isNotEmpty
-                            ? controller.username.value
-                            : 'User',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      );
-                    }),
-                    Row(
-                      children: const [
-                        Flexible(
-                          child: Text(
-                            'Selamat Datang Kembali',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(Icons.waving_hand, color: Colors.amber, size: 18)
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Notification icon
-        const Icon(Icons.notifications_outlined, color: Colors.red),
-      ],
     );
   }
 
@@ -232,34 +242,37 @@ class HomePage extends GetView<HomeController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Obx(() => Text(
-                controller.hasCheckedIn.value
-                    ? "Anda Sudah Absen"
-                    : 'Anda Belum Absen',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: screenWidth < 360 ? 18 : 20,
-                  color: controller.hasCheckedIn.value
-                      ? Colors.green[700]
-                      : Colors.red[700],
-                ),
-                overflow: TextOverflow.ellipsis,
-              )),
+          Obx(() {
+            // Get status text and color based on attendance state
+            String statusText = controller.getStatusMessage();
+            Color statusColor = controller.getStatusColor();
+
+            return Text(
+              statusText,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: screenWidth < 360 ? 18 : 20,
+                color: statusColor,
+              ),
+              overflow: TextOverflow.ellipsis,
+            );
+          }),
           SizedBox(height: screenHeight * 0.005),
           Obx(() {
             // Get shift time
             final shiftTime =
                 controller.getShiftTime(controller.selectedShift.value);
 
-            // Check if it's "Selamat Malam!" message
-            final bool isEveningMessage = shiftTime == 'Selamat Malam!';
+            // Check if it's night time message (Selamat Tidur)
+            final bool isNightMessage = shiftTime == 'Selamat Tidur!';
 
-            return isEveningMessage
+            return isNightMessage
                 ? Text(
                     shiftTime,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: Colors.indigo[400],
+                      fontWeight: FontWeight.w500,
                     ),
                   )
                 : Row(
@@ -284,24 +297,62 @@ class HomePage extends GetView<HomeController> {
                     ],
                   );
           }),
-          SizedBox(height: screenHeight * 0.005),
-          Row(
-            children: [
-              Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  DateFormat('EEEE, d MMMM yyyy', 'id_ID')
-                      .format(DateTime.now()),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                  overflow: TextOverflow.ellipsis,
+          // Add check-in time if available
+          Obx(() {
+            if (controller.hasCheckedIn.value &&
+                controller.attendanceController.currentAttendance.value
+                        .checkInTime !=
+                    null &&
+                controller.attendanceController.currentAttendance.value
+                    .checkInTime!.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.login, size: 14, color: Colors.green[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Check-in: ${controller.attendanceController.currentAttendance.value.checkInTime}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          // Add check-out time if available
+          Obx(() {
+            if (controller.hasCheckedOut.value &&
+                controller.attendanceController.currentAttendance.value
+                        .checkOutTime !=
+                    null &&
+                controller.attendanceController.currentAttendance.value
+                    .checkOutTime!.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 14, color: Colors.blue[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Check-out: ${controller.attendanceController.currentAttendance.value.checkOutTime}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
         ],
       ),
     );
@@ -523,33 +574,43 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
+  // Updated to navigate to CategoryPage when clicked, just like in GudangPage
   Widget _buildCategoryItem(String title, IconData icon) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: const BoxDecoration(
-            color: Color(0xFF3A3A3A),
-            shape: BoxShape.circle,
+    return InkWell(
+      onTap: () => _navigateToCategoryPage(title),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF3A3A3A),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 24,
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  // New method to navigate to CategoryPage, similar to GudangPage
+  void _navigateToCategoryPage(String categoryName) {
+    // Navigate to CategoryPage
+    Get.to(() => CategoryPage(categoryName: categoryName));
   }
 
   Widget _buildProductItem(Product item) {

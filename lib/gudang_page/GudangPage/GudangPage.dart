@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kliktoko/ReusablePage/categoryPage.dart';
 import 'package:kliktoko/home_page/HomeController/HomeController.dart';
 import 'package:kliktoko/ReusablePage/detailpage.dart';
 import '../GudangControllers/GudangController.dart';
 import '../GudangModel/ProductModel.dart';
+import '../GudangModel/CategoryModel.dart';
 
 class GudangPage extends StatefulWidget {
   const GudangPage({Key? key}) : super(key: key);
@@ -16,6 +18,10 @@ class _GudangPageState extends State<GudangPage>
     with SingleTickerProviderStateMixin {
   final GudangController controller = Get.put(GudangController());
   late HomeController homeController;
+
+  // Add a FocusNode to manage the search field focus
+  final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -35,6 +41,44 @@ class _GudangPageState extends State<GudangPage>
         controller.resetDropdownFlag();
       }
     });
+
+    // Set up listener for route changes to manage search field focus
+    Get.rootDelegate.addListener(_handleRouteChange);
+
+    // Initialize search controller with current search query
+    _searchController.text = controller.searchQuery.value;
+
+    // Listen to the controller's search query changes
+    ever(controller.searchQuery, (query) {
+      if (_searchController.text != query) {
+        _searchController.text = query;
+      }
+    });
+
+    // Add focus listener
+    _searchFocusNode.addListener(_handleFocusChange);
+  }
+
+  // Handle focus changes
+  void _handleFocusChange() {
+    // Update controller when focus changes
+    if (_searchFocusNode.hasFocus) {
+      controller.onSearchFieldFocused();
+    } else {
+      controller.onSearchFieldUnfocused();
+    }
+  }
+
+  // Handle route changes
+  void _handleRouteChange() {
+    _unfocusSearchField();
+  }
+
+  // Method to unfocus the search field
+  void _unfocusSearchField() {
+    if (_searchFocusNode.hasFocus) {
+      _searchFocusNode.unfocus();
+    }
   }
 
   // Local state for the filter options
@@ -47,7 +91,6 @@ class _GudangPageState extends State<GudangPage>
     'XL Size',
     'XXL Size',
     'XXXL Size',
-    '3L Size',
   ];
 
   // Green color constant
@@ -60,6 +103,13 @@ class _GudangPageState extends State<GudangPage>
   @override
   void dispose() {
     _removeOverlay();
+    // Remove listener for route changes
+    Get.rootDelegate.removeListener(_handleRouteChange);
+    // Remove focus listener
+    _searchFocusNode.removeListener(_handleFocusChange);
+    // Dispose of the FocusNode and TextEditingController when the widget is disposed
+    _searchFocusNode.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -84,6 +134,15 @@ class _GudangPageState extends State<GudangPage>
   }
 
   void _showDropdownMenu(BuildContext context, GlobalKey key) {
+    // First ensure any existing overlay is removed
+    _removeOverlay();
+
+    // Check if the key has a valid context
+    if (key.currentContext == null) {
+      print('Error: Filter button context is null');
+      return;
+    }
+
     final RenderBox renderBox =
         key.currentContext!.findRenderObject() as RenderBox;
     final position = renderBox.localToGlobal(Offset.zero);
@@ -155,14 +214,42 @@ class _GudangPageState extends State<GudangPage>
       ),
     );
 
-    Overlay.of(context).insert(_overlayEntry!);
-    isDropdownVisible = true;
-    setState(() {});
+    // Check if we have a valid overlay before inserting
+    final overlay = Overlay.of(context);
+    if (overlay != null) {
+      overlay.insert(_overlayEntry!);
+      isDropdownVisible = true;
+      setState(() {});
+    } else {
+      print('Error: Overlay is null');
+    }
   }
 
   // Method to navigate to product detail page
   void _navigateToProductDetail(Product product) {
+    // Unfocus the search field before navigating
+    _unfocusSearchField();
     Get.to(() => ProductDetailPage(product: product));
+  }
+
+  // Method to navigate to category page
+  void _navigateToCategoryPage(String categoryName) {
+    // Unfocus the search field before navigating
+    _unfocusSearchField();
+    Get.to(() => CategoryPage(categoryName: categoryName));
+  }
+
+  // Simple refresh function to reload all data
+  Future<void> _refreshData() async {
+    try {
+      // Load categories and inventory data in parallel
+      await Future.wait([
+        controller.loadCategories(),
+        controller.loadInventoryData(),
+      ]);
+    } catch (e) {
+      print('Error refreshing data: $e');
+    }
   }
 
   @override
@@ -180,325 +267,413 @@ class _GudangPageState extends State<GudangPage>
     final crossAxisCount = screenWidth < 360 ? 1 : 2;
     final childAspectRatio = screenWidth < 360 ? 0.8 : 0.7;
 
-    return Scaffold(
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => controller.loadInventoryData(),
-          color: primaryGreen,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search bar
-                  Container(
-                    margin: EdgeInsets.only(
-                      top: verticalPadding,
-                      bottom: verticalPadding,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.grey.shade300, width: 1),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      onChanged: (value) => controller.updateSearchQuery(value),
-                      decoration: InputDecoration(
-                        hintText: 'search',
-                        hintStyle:
-                            TextStyle(color: Colors.grey[400], fontSize: 16),
-                        prefixIcon: Padding(
-                          padding:
-                              const EdgeInsets.only(left: 10.0, right: 5.0),
-                          child: Icon(Icons.search,
-                              color: Colors.grey[400], size: 22),
-                        ),
-                        border: InputBorder.none,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12),
+    return GestureDetector(
+      // Add a GestureDetector to the entire scaffold to unfocus when tapping outside
+      onTap: () {
+        _unfocusSearchField();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _refreshData,
+            color: primaryGreen,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Search bar - Updated with FocusNode
+                    Container(
+                      margin: EdgeInsets.only(
+                        top: verticalPadding,
+                        bottom: verticalPadding,
                       ),
-                    ),
-                  ),
-
-                  // Out of stock section
-                  GetBuilder<GudangController>(builder: (controller) {
-                    final outOfStockItems =
-                        controller.getOutOfStockItemsForDisplay(3);
-                    return Container(
-                      padding: EdgeInsets.all(horizontalPadding),
                       decoration: BoxDecoration(
-                        color: Color(0xFF282828),
-                        borderRadius: BorderRadius.circular(cardBorderRadius),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Out Of Stock',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                          SizedBox(height: verticalPadding * 0.5),
-                          SizedBox(
-                            height: screenHeight * 0.17, // Responsive height
-                            child: outOfStockItems.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'No out of stock items',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  )
-                                : ListView(
-                                    scrollDirection: Axis.horizontal,
-                                    physics: const BouncingScrollPhysics(),
-                                    children: [
-                                      ...outOfStockItems.map((item) =>
-                                          _buildProductItemFromOutOfStock(
-                                              item)),
-                                      SizedBox(width: horizontalPadding * 0.5),
-                                      if (controller.outOfStockItems.length > 3)
-                                        _buildMoreButton(),
-                                    ],
-                                  ),
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(30),
+                        border:
+                            Border.all(color: Colors.grey.shade300, width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                    );
-                  }),
-
-                  // Category header
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: verticalPadding),
-                    child: const Text(
-                      'Category',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      child: TextField(
+                        controller: _searchController, // Assign text controller
+                        focusNode: _searchFocusNode, // Assign the focus node
+                        onChanged: (value) =>
+                            controller.updateSearchQuery(value),
+                        textInputAction: TextInputAction
+                            .search, // Change to search to make keyboard more appropriate
+                        decoration: InputDecoration(
+                          hintText: 'search',
+                          hintStyle:
+                              TextStyle(color: Colors.grey[400], fontSize: 16),
+                          prefixIcon: Padding(
+                            padding:
+                                const EdgeInsets.only(left: 10.0, right: 5.0),
+                            child: Icon(Icons.search,
+                                color: Colors.grey[400], size: 22),
+                          ),
+                          // Add a clear button when there's text
+                          suffixIcon:
+                              Obx(() => controller.searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(Icons.clear,
+                                          color: Colors.grey[400]),
+                                      onPressed: () {
+                                        // Clear the search query and unfocus
+                                        controller.updateSearchQuery('');
+                                        _unfocusSearchField();
+                                      },
+                                    )
+                                  : SizedBox.shrink()),
+                          border: InputBorder.none,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 12),
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Categories
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: verticalPadding),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(cardBorderRadius),
-                    ),
-                    child: screenWidth < 360
-                        ? Wrap(
-                            spacing: horizontalPadding,
-                            runSpacing: verticalPadding,
-                            alignment: WrapAlignment.spaceEvenly,
-                            children: [
-                              _buildCategoryItem('T-Shirt', Icons.checkroom),
-                              _buildCategoryItem(
-                                  'Pants', Icons.accessibility_new),
-                              _buildCategoryItem('Kids', Icons.child_care),
-                              _buildCategoryItem('Adults', Icons.person),
-                              _buildCategoryItem('Uniform', Icons.school),
-                            ],
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildCategoryItem('T-Shirt', Icons.checkroom),
-                              _buildCategoryItem(
-                                  'Pants', Icons.accessibility_new),
-                              _buildCategoryItem('Kids', Icons.child_care),
-                              _buildCategoryItem('Adults', Icons.person),
-                              _buildCategoryItem('Uniform', Icons.school),
-                            ],
-                          ),
-                  ),
-
-                  // Filter button and gudang header
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: verticalPadding),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Filter button
-                        GestureDetector(
-                          key: filterButtonKey,
-                          onTap: () {
-                            _showDropdownMenu(context, filterButtonKey);
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.tune,
-                                size: 22,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ),
+                    // Out of stock section
+                    GetBuilder<GudangController>(builder: (controller) {
+                      final outOfStockItems =
+                          controller.getOutOfStockItemsForDisplay(3);
+                      return Container(
+                        padding: EdgeInsets.all(horizontalPadding),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF282828),
+                          borderRadius: BorderRadius.circular(cardBorderRadius),
                         ),
-
-                        // Gudang title
-                        const Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12.0),
-                            child: Text(
-                              'Gudang',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Out Of Stock',
                               style: TextStyle(
-                                fontSize: 20,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-
-                        // Total items counter
-                        GetBuilder<GudangController>(
-                          builder: (controller) => Text(
-                            'Total : ${controller.filteredItems.length} barang',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Products grid
-                  Padding(
-                    padding: EdgeInsets.only(top: verticalPadding * 0.5),
-                    child: GetBuilder<GudangController>(
-                      builder: (controller) {
-                        if (controller.isLoading) {
-                          return Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: verticalPadding * 2),
-                              child: CircularProgressIndicator(
-                                color: primaryGreen,
+                                fontSize: 18,
                               ),
                             ),
-                          );
-                        }
-
-                        if (controller.hasError) {
-                          return Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: verticalPadding * 2),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    size: 48,
-                                    color: Colors.red[400],
-                                  ),
-                                  SizedBox(height: verticalPadding),
-                                  Text(
-                                    controller.errorMessage,
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 16,
+                            SizedBox(height: verticalPadding * 0.5),
+                            SizedBox(
+                              height: screenHeight * 0.17, // Responsive height
+                              child: outOfStockItems.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        'No out of stock items',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    )
+                                  : ListView(
+                                      scrollDirection: Axis.horizontal,
+                                      physics: const BouncingScrollPhysics(),
+                                      children: [
+                                        ...outOfStockItems.map((item) =>
+                                            _buildProductItemFromOutOfStock(
+                                                item)),
+                                        SizedBox(
+                                            width: horizontalPadding * 0.5),
+                                        if (controller.outOfStockItems.length >
+                                            3)
+                                          _buildMoreButton(),
+                                      ],
                                     ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  SizedBox(height: verticalPadding),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        controller.loadInventoryData(),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryGreen,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    // Category header
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: verticalPadding),
+                      child: const Text(
+                        'Category',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    // Categories - Now navigates to dedicated category page
+                    Container(
+                        padding:
+                            EdgeInsets.symmetric(vertical: verticalPadding),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(cardBorderRadius),
+                        ),
+                        child: GetBuilder<GudangController>(
+                          builder: (controller) {
+                            if (controller.isCategoriesLoading) {
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  color: primaryGreen,
+                                ),
+                              );
+                            }
+
+                            if (controller.categories.isEmpty) {
+                              return _buildDefaultCategories(screenWidth);
+                            }
+
+                            return screenWidth < 360
+                                ? Wrap(
+                                    spacing: horizontalPadding,
+                                    runSpacing: verticalPadding,
+                                    alignment: WrapAlignment.spaceEvenly,
+                                    children: controller.categories
+                                        .map((category) => _buildCategoryItem(
+                                            category.name, category.getIcon()))
+                                        .toList(),
+                                  )
+                                : (controller.categories.length <= 5
+                                    // Show in a row if 5 or fewer categories
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: controller.categories
+                                            .map((category) =>
+                                                _buildCategoryItem(
+                                                    category.name,
+                                                    category.getIcon()))
+                                            .toList(),
+                                      )
+                                    // Otherwise use a horizontal scrolling list
+                                    : Container(
+                                        height: 90,
+                                        child: ListView(
+                                          scrollDirection: Axis.horizontal,
+                                          physics: BouncingScrollPhysics(),
+                                          children: controller.categories
+                                              .map((category) => Padding(
+                                                    padding: EdgeInsets.only(
+                                                        right:
+                                                            horizontalPadding),
+                                                    child: _buildCategoryItem(
+                                                        category.name,
+                                                        category.getIcon()),
+                                                  ))
+                                              .toList(),
+                                        ),
+                                      ));
+                          },
+                        )),
+
+                    // Filter button and gudang header - KEPT ORIGINAL DESIGN
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: verticalPadding),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Filter button
+                          GestureDetector(
+                            key: filterButtonKey,
+                            onTap: () {
+                              _unfocusSearchField(); // Unfocus search when opening filter
+                              _showDropdownMenu(context, filterButtonKey);
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.tune,
+                                  size: 22,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Gudang title
+                          const Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12.0),
+                              child: Text(
+                                'Gudang',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+
+                          // Total items counter
+                          GetBuilder<GudangController>(
+                            builder: (controller) => Text(
+                              'Total : ${controller.filteredItems.length} barang',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Products grid
+                    Padding(
+                      padding: EdgeInsets.only(top: verticalPadding * 0.5),
+                      child: GetBuilder<GudangController>(
+                        builder: (controller) {
+                          if (controller.isLoading) {
+                            return Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    vertical: verticalPadding * 2),
+                                child: CircularProgressIndicator(
+                                  color: primaryGreen,
+                                ),
+                              ),
+                            );
+                          }
+
+                          if (controller.hasError) {
+                            return Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    vertical: verticalPadding * 2),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 48,
+                                      color: Colors.red[400],
+                                    ),
+                                    SizedBox(height: verticalPadding),
+                                    Text(
+                                      controller.errorMessage,
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(height: verticalPadding),
+                                    ElevatedButton(
+                                      onPressed: _refreshData,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: primaryGreen,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Retry',
+                                        style: TextStyle(color: Colors.white),
                                       ),
                                     ),
-                                    child: Text(
-                                      'Retry',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        }
+                            );
+                          }
 
-                        if (controller.filteredItems.isEmpty) {
-                          return Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: verticalPadding * 2),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.inventory_2_outlined,
-                                    size: 48,
-                                    color: Colors.grey[400],
-                                  ),
-                                  SizedBox(height: verticalPadding),
-                                  Text(
-                                    'No items found',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 16,
+                          if (controller.filteredItems.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                    vertical: verticalPadding * 2),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.inventory_2_outlined,
+                                      size: 48,
+                                      color: Colors.grey[400],
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(height: verticalPadding),
+                                    Text(
+                                      'No items found',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        }
+                            );
+                          }
 
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            childAspectRatio: childAspectRatio,
-                            crossAxisSpacing: horizontalPadding,
-                            mainAxisSpacing: verticalPadding,
-                          ),
-                          itemCount: controller.filteredItems.length,
-                          itemBuilder: (context, index) {
-                            final item = controller.filteredItems[index];
-                            return _buildProductItemFromData(item);
-                          },
-                        );
-                      },
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              childAspectRatio: childAspectRatio,
+                              crossAxisSpacing: horizontalPadding,
+                              mainAxisSpacing: verticalPadding,
+                            ),
+                            itemCount: controller.filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = controller.filteredItems[index];
+                              return _buildProductItemFromData(item);
+                            },
+                          );
+                        },
+                      ),
                     ),
-                  ),
 
-                  // Bottom padding to avoid navigation bar overlap
-                  SizedBox(height: screenHeight * 0.1),
-                ],
+                    // Bottom padding to avoid navigation bar overlap
+                    SizedBox(height: screenHeight * 0.1),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  // Fallback categories if API fails
+  Widget _buildDefaultCategories(double screenWidth) {
+    return screenWidth < 360
+        ? Wrap(
+            spacing: screenWidth * 0.04,
+            runSpacing: 10,
+            alignment: WrapAlignment.spaceEvenly,
+            children: [
+              _buildCategoryItem('T-Shirt', Icons.checkroom),
+              _buildCategoryItem('Pants', Icons.accessibility_new),
+              _buildCategoryItem('Kids', Icons.child_care),
+              _buildCategoryItem('Adults', Icons.person),
+              _buildCategoryItem('Uniform', Icons.school),
+            ],
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildCategoryItem('T-Shirt', Icons.checkroom),
+              _buildCategoryItem('Pants', Icons.accessibility_new),
+              _buildCategoryItem('Kids', Icons.child_care),
+              _buildCategoryItem('Adults', Icons.person),
+              _buildCategoryItem('Uniform', Icons.school),
+            ],
+          );
   }
 
   Widget _buildMoreButton() {
@@ -665,10 +840,12 @@ class _GudangPageState extends State<GudangPage>
     );
   }
 
+  // Updated category item that now navigates to a dedicated page
   Widget _buildCategoryItem(String title, IconData icon) {
     return InkWell(
       onTap: () {
-        controller.updateSearchQuery(title);
+        // Navigate to category page instead of filtering directly
+        _navigateToCategoryPage(title);
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -867,22 +1044,15 @@ class _GudangPageState extends State<GudangPage>
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 6),
             Text(
               '${item.name} / ${item.size}',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+                color: Colors.black,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
               ),
-              maxLines: 1,
               overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              'Rp.${item.price.toStringAsFixed(0)}',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
             ),
           ],
         ),

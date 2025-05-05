@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
@@ -10,17 +11,32 @@ class StorageService {
 
   Future<void> init() async {
     if (!_isInitialized) {
-      _prefs = await SharedPreferences.getInstance();
-      _isInitialized = true;
-      print('StorageService initialized');
+      try {
+        _prefs = await SharedPreferences.getInstance();
+        _isInitialized = true;
+        print('StorageService initialized successfully');
+      } catch (e) {
+        print('Error initializing StorageService: $e');
+        throw Exception('Failed to initialize storage: $e');
+      }
     }
   }
 
   Future<void> saveToken(String token) async {
     await init();
-    await _prefs.setString(tokenKey, token);
-    await _prefs.setBool(isLoggedInKey, true);
-    print('Token saved: ${token.substring(0, min(token.length, 10))}...');
+    try {
+      final result = await _prefs.setString(tokenKey, token);
+      final loginResult = await _prefs.setBool(isLoggedInKey, true);
+      
+      if (!result || !loginResult) {
+        throw Exception('Failed to save token to SharedPreferences');
+      }
+      
+      print('Token saved: ${token.substring(0, math.min(token.length, 10))}...');
+    } catch (e) {
+      print('Error saving token: $e');
+      throw Exception('Failed to save token: $e');
+    }
   }
 
   Future<bool> isLoggedIn() async {
@@ -30,13 +46,18 @@ class StorageService {
 
   Future<String?> getToken() async {
     await init();
-    final token = _prefs.getString(tokenKey);
-    if (token != null) {
-      print('Retrieved token: ${token.substring(0, min(token.length, 10))}...');
-    } else {
-      print('No token found in storage');
+    try {
+      final token = _prefs.getString(tokenKey);
+      if (token != null && token.isNotEmpty) {
+        print('Retrieved token: ${token.substring(0, math.min(token.length, 10))}...');
+      } else {
+        print('No token found in storage');
+      }
+      return token;
+    } catch (e) {
+      print('Error retrieving token: $e');
+      return null;
     }
-    return token;
   }
 
   Future<void> clearAllUserData() async {
@@ -70,31 +91,63 @@ class StorageService {
 
   Future<void> saveUserData(Map<String, dynamic> userData) async {
     await init();
-    final jsonData = json.encode(userData);
-    await _prefs.setString(userDataKey, jsonData);
-    print('User data saved: $userData');
+    try {
+      final jsonData = json.encode(userData);
+      final result = await _prefs.setString(userDataKey, jsonData);
+      
+      if (!result) {
+        throw Exception('Failed to save user data to SharedPreferences');
+      }
+      
+      print('User data saved successfully: $userData');
+    } catch (e) {
+      print('Error saving user data: $e');
+      throw Exception('Failed to save user data: $e');
+    }
   }
 
   Future<Map<String, dynamic>?> getUserData() async {
     await init();
-    final String? userDataString = _prefs.getString(userDataKey);
-    if (userDataString != null) {
-      try {
-        final data = json.decode(userDataString) as Map<String, dynamic>;
-        print('Retrieved user data: $data');
-        return data;
-      } catch (e) {
-        print('Error parsing user data: $e');
+    try {
+      final String? userDataString = _prefs.getString(userDataKey);
+      if (userDataString != null && userDataString.isNotEmpty) {
+        try {
+          final data = json.decode(userDataString) as Map<String, dynamic>;
+          print('Retrieved user data: $data');
+          return data;
+        } catch (e) {
+          print('Error parsing user data: $e');
+          // Try to recover corrupted data
+          await _prefs.remove(userDataKey);
+          return null;
+        }
+      } else {
+        print('No user data found in storage');
         return null;
       }
-    } else {
-      print('No user data found in storage');
+    } catch (e) {
+      print('Error retrieving user data: $e');
       return null;
     }
   }
 
-  // Helper to limit string length for logging
-  int min(int a, int b) {
-    return a < b ? a : b;
+  Future<bool> verifyLoginState() async {
+    try {
+      await init();
+      final token = await getToken();
+      final userData = await getUserData();
+      final isLoggedIn = await this.isLoggedIn();
+      
+      print('== STORAGE STATE VERIFICATION ==');
+      print('Token exists: ${token != null && token.isNotEmpty}');
+      print('User data exists: ${userData != null}');
+      print('isLoggedIn flag: $isLoggedIn');
+      
+      // Consider logged in if we have both token and user data
+      return token != null && token.isNotEmpty && userData != null && isLoggedIn;
+    } catch (e) {
+      print('Error verifying login state: $e');
+      return false;
+    }
   }
 }

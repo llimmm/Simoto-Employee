@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../ProfileController/ProfileController.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -20,123 +21,126 @@ class ProfilePage extends StatelessWidget {
     // Calculate avatar radius based on screen size
     final avatarRadius = screenWidth * 0.125; // 12.5% of screen width
 
+    // Calculate top padding to center content
+    // Add extra top padding that's approximately 10% of the screen height
+    final topPadding = screenHeight * 0.055;
+
+    // Refresh attendance data when profile page is opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.refreshAttendanceData();
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFEFF5E9),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Column(
-              children: [
-                SizedBox(height: verticalSpacing),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            // Refresh user data and attendance data
+            await controller.loadUserData();
+            await controller.refreshAttendanceData();
+          },
+          color: const Color(0xFFAED15C),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Column(
+                children: [
+                  // Add extra top padding to center content vertically
+                  SizedBox(height: topPadding),
 
-                // Profile Avatar
-                CircleAvatar(
-                  radius: avatarRadius,
-                  backgroundImage: const AssetImage('assets/profile.jpg'),
-                ),
-                SizedBox(height: verticalSpacing * 0.5),
+                  // Profile Avatar
+                  CircleAvatar(
+                    radius: avatarRadius,
+                    backgroundImage: const AssetImage('assets/profile.jpg'),
+                  ),
+                  SizedBox(height: verticalSpacing * 0.5),
 
-                // Username
-                Obx(() => Text(
-                      controller.username.value,
-                      style: TextStyle(
-                        fontSize: screenWidth < 360 ? 18 : 20,
-                        fontWeight: FontWeight.bold,
+                  // Username
+                  Obx(() => Text(
+                        controller.username.value,
+                        style: TextStyle(
+                          fontSize: screenWidth < 360 ? 18 : 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      )),
+                  SizedBox(height: verticalSpacing * 0.8),
+
+                  // Current Month and Year
+
+                  // Info Cards - Responsive layout based on screen width
+                  screenWidth < 360
+                      ? Column(
+                          children: [
+                            _buildTotalShiftCard(
+                              width: double.infinity,
+                            ),
+                            SizedBox(height: verticalSpacing * 0.5),
+                            _buildRoleCard(
+                              width: double.infinity,
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Total Shift
+                            _buildTotalShiftCard(
+                              width: screenWidth * 0.42,
+                            ),
+                            SizedBox(width: screenWidth * 0.03),
+                            // Role
+                            _buildRoleCard(
+                              width: screenWidth * 0.42,
+                            ),
+                          ],
+                        ),
+
+                  SizedBox(height: verticalSpacing),
+
+                  // Menu Card
+                  Card(
+                    color: const Color(0xFF282828),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: verticalSpacing * 0.8,
                       ),
-                      textAlign: TextAlign.center,
-                    )),
-                SizedBox(height: verticalSpacing * 0.8),
-
-                // Info Cards - Responsive layout based on screen width
-                screenWidth < 360
-                    ? Column(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildInfoCard(
-                            icon: Icons.school_outlined,
-                            title: 'total shift/bulan',
-                            value: '10',
-                            width: double.infinity,
+                          _buildMenuItem(
+                            context: context,
+                            icon: Icons.work_outline,
+                            title: 'History Kerja',
+                            onTap: () =>
+                                controller.goToHistoryKerjaPage(context),
                           ),
-                          SizedBox(height: verticalSpacing * 0.5),
-                          _buildInfoCard(
-                            icon: Icons.badge_outlined,
-                            title: 'Role',
-                            value: 'Karyawan',
-                            width: double.infinity,
+                          _buildMenuItem(
+                            context: context,
+                            icon: Icons.calendar_today,
+                            title: 'Pengaturan Cuti',
+                            onTap: () =>
+                                controller.goToFormLaporanKerjaPage(context),
+                          ),
+                          _buildMenuItem(
+                            context: context,
+                            icon: Icons.logout,
+                            title: 'Keluar',
+                            onTap: () => _showLogoutConfirmation(context),
                           ),
                         ],
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Total Shift
-                          _buildInfoCard(
-                            icon: Icons.school_outlined,
-                            title: 'total shift/bulan',
-                            value: '10',
-                            width: screenWidth * 0.42,
-                          ),
-                          SizedBox(width: screenWidth * 0.03),
-                          // Role
-                          _buildInfoCard(
-                            icon: Icons.badge_outlined,
-                            title: 'Role',
-                            value: 'Karyawan',
-                            width: screenWidth * 0.42,
-                          ),
-                        ],
                       ),
-
-                SizedBox(height: verticalSpacing),
-
-                // Menu Card
-                Card(
-                  color: const Color(0xFF282828),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  margin: EdgeInsets.zero,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      vertical: verticalSpacing * 0.8,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildMenuItem(
-                          context: context,
-                          icon: Icons.work_outline,
-                          title: 'History Kerja',
-                          onTap: () => controller.goToHistoryKerjaPage(context),
-                        ),
-                        _buildMenuItem(
-                          context: context,
-                          icon: Icons.calendar_today,
-                          title: 'Pengaturan Cuti',
-                          onTap: () =>
-                              controller.goToFormLaporanKerjaPage(context),
-                        ),
-                        _buildMenuItem(
-                          context: context,
-                          icon: Icons.brightness_6,
-                          title: 'Ubah Tampilan',
-                          onTap: () => controller.goToThemeSettings(context),
-                        ),
-                        _buildMenuItem(
-                          context: context,
-                          icon: Icons.logout,
-                          title: 'Keluar',
-                          onTap: () => _showLogoutConfirmation(context),
-                        ),
-                      ],
                     ),
                   ),
-                ),
-                // Add extra space at the bottom to avoid navigation bar overlap
-                SizedBox(height: screenHeight * 0.1),
-              ],
+                  // Add extra space at the bottom to avoid navigation bar overlap
+                  SizedBox(height: screenHeight * 0.1),
+                ],
+              ),
             ),
           ),
         ),
@@ -170,43 +174,93 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Reusable widget for info cards
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required double width,
-  }) {
+  // Widget for Total Shift Card - Now using dynamic data
+  Widget _buildTotalShiftCard({required double width}) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade600),
+        border: Border.all(color: Colors.grey.shade400),
         borderRadius: BorderRadius.circular(16),
-        color: const Color(0xFFEFF5E9),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.school_outlined, color: Colors.grey, size: 28),
+          Icon(Icons.calendar_month_outlined,
+              color: Colors.grey[700], size: 28),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  'total shift/bulan',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
+                Obx(() => Text(
+                      controller.totalShiftsPerMonth.value,
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget for Role Card - Now using dynamic data
+  Widget _buildRoleCard({required double width}) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.badge_outlined, color: Colors.grey[700], size: 28),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  value,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  'Role',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
+                Obx(() => Text(
+                      controller.userRole.value,
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    )),
               ],
             ),
           ),

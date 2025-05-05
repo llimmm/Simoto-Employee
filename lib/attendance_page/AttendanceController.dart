@@ -13,6 +13,8 @@ class AttendanceController extends GetxController {
 
   // Delegate all attendance-related operations to shared controller
   RxBool get hasCheckedIn => attendanceController.hasCheckedIn;
+  RxBool get hasCheckedOut => attendanceController.hasCheckedOut;
+  RxBool get isLate => attendanceController.isLate;
   RxString get selectedShift => attendanceController.selectedShift;
   RxDouble get attendancePercentage =>
       attendanceController.attendancePercentage;
@@ -23,12 +25,26 @@ class AttendanceController extends GetxController {
       attendanceController.currentAttendance;
   RxString get username => attendanceController.username;
 
+  // New getters for attendance history
+  RxList<Map<String, dynamic>> get attendanceHistory =>
+      attendanceController.attendanceHistory;
+  RxBool get isHistoryLoading => attendanceController.isHistoryLoading;
+
   // Function to check attendance status from server
   Future<void> checkAttendanceStatus() async {
     try {
       await attendanceController.checkAttendanceStatus();
     } catch (e) {
       print('Error checking attendance status in controller: $e');
+    }
+  }
+
+  // Function to load attendance history from server
+  Future<void> loadAttendanceHistory() async {
+    try {
+      await attendanceController.loadAttendanceHistory();
+    } catch (e) {
+      print('Error loading attendance history in controller: $e');
     }
   }
 
@@ -71,13 +87,23 @@ class AttendanceController extends GetxController {
       await Future.delayed(Duration(milliseconds: 800));
       await checkAttendanceStatus();
 
-      // Show success message regardless of status check
+      // Refresh attendance history after check-in
+      await loadAttendanceHistory();
+
+      // Show success message with appropriate text based on status
+      String title = 'Absen Berhasil';
+      String message = isLate.value
+          ? 'Kehadiran anda telah tercatat, namun anda terlambat'
+          : 'Kehadiran anda telah tercatat';
+
       Get.snackbar(
-        'Absen Berhasil',
-        'Kehadiran anda telah tercatat',
+        title,
+        message,
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFAED15C),
+        backgroundColor:
+            isLate.value ? Colors.orange[300] : const Color(0xFFAED15C),
         colorText: const Color(0xFF282828),
+        duration: Duration(seconds: isLate.value ? 5 : 3),
       );
     } catch (e) {
       // Make sure to close the loading dialog even on error
@@ -91,6 +117,85 @@ class AttendanceController extends GetxController {
       Get.snackbar(
         'Check-in Error',
         'Terjadi masalah saat proses absen. Silakan coba lagi.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[400],
+        colorText: Colors.white,
+        duration: Duration(seconds: 5),
+      );
+    }
+  }
+
+  Future<void> checkOut() async {
+    // First check current status (directly from server)
+    await checkAttendanceStatus();
+
+    if (!hasCheckedIn.value) {
+      // Not checked in yet, show error message
+      Get.snackbar(
+        'Belum Absen',
+        'Anda belum melakukan check-in hari ini',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[400],
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (hasCheckedOut.value) {
+      // Already checked out, show message
+      Get.snackbar(
+        'Sudah Check-out',
+        'Anda sudah melakukan check-out hari ini',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFAED15C),
+        colorText: const Color(0xFF282828),
+      );
+      return;
+    }
+
+    // Show loading indicator
+    final loadingDialog = _buildLoadingDialog();
+    Get.dialog(loadingDialog, barrierDismissible: false);
+
+    try {
+      // Attempt to check out via the shared controller
+      await attendanceController.checkOut();
+
+      // Make sure to close the loading dialog
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+
+      // Force set checked out to true immediately for better UI response
+      hasCheckedOut.value = true;
+
+      // Force status refresh after check-out
+      await Future.delayed(Duration(milliseconds: 800));
+      await checkAttendanceStatus();
+
+      // Refresh attendance history after check-out
+      await loadAttendanceHistory();
+
+      // Show success message
+      Get.snackbar(
+        'Check-out Berhasil',
+        'Terima kasih atas pekerjaan anda hari ini',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFAED15C),
+        colorText: const Color(0xFF282828),
+      );
+    } catch (e) {
+      // Make sure to close the loading dialog even on error
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+
+      print('Error in AttendanceController.checkOut: $e');
+
+      // Show error message to user
+      Get.snackbar(
+        'Check-out Error',
+        'Terjadi masalah saat proses check-out. Silakan coba lagi.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red[400],
         colorText: Colors.white,
@@ -133,11 +238,24 @@ class AttendanceController extends GetxController {
     // Check attendance status immediately when controller initializes
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await checkAttendanceStatus();
+
+      // Load attendance history
+      await loadAttendanceHistory();
     });
 
     // Listen for changes in check-in status
     ever(hasCheckedIn, (bool checked) {
       print('Check-in status changed: $checked');
+    });
+
+    // Listen for changes in check-out status
+    ever(hasCheckedOut, (bool checkedOut) {
+      print('Check-out status changed: $checkedOut');
+    });
+
+    // Listen for changes in late status
+    ever(isLate, (bool late) {
+      print('Late status changed: $late');
     });
 
     ever(selectedShift, (_) => print('Shift changed: ${selectedShift.value}'));

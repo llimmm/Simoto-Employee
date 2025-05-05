@@ -133,17 +133,31 @@ class LoginBottomSheet extends GetView<LoginController> {
                         ),
                       )),
 
-                  // Error message (if any)
+                  // Error message with improved visibility
                   Obx(() => controller.errorMessage.value.isNotEmpty
-                      ? Padding(
-                          padding: EdgeInsets.only(top: verticalSpacing * 0.4),
-                          child: Text(
-                            controller.errorMessage.value,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
+                      ? Container(
+                          margin: EdgeInsets.only(top: verticalSpacing * 0.6),
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  controller.errorMessage.value,
+                                  style: TextStyle(
+                                    color: Colors.red.shade800,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         )
                       : const SizedBox.shrink()),
