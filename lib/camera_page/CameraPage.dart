@@ -466,7 +466,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     );
   }
 
-  // Loading indicator when camera is initializing
+  // Loading indicator when camera is initializing6
   Widget _buildLoadingIndicator() {
     return Center(
       child: Column(

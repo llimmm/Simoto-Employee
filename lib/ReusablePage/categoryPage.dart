@@ -18,7 +18,7 @@ class CategoryPage extends StatefulWidget {
 class _CategoryPageState extends State<CategoryPage> {
   final GudangController controller = Get.find<GudangController>();
   final CategoryService _categoryService = CategoryService();
-  
+
   bool isLoading = true;
   List<Product> categoryProducts = [];
   String errorMessage = '';
@@ -41,16 +41,19 @@ class _CategoryPageState extends State<CategoryPage> {
     try {
       // First get the category object by name
       category = await _categoryService.getCategoryByName(widget.categoryName);
-      
+
       if (category != null && category!.id > 0) {
         // Now get products for this category ID
-        categoryProducts = await _categoryService.getProductsByCategory(category!.id);
-        print('Loaded ${categoryProducts.length} products for category ${category!.name}');
+        categoryProducts =
+            await _categoryService.getProductsByCategory(category!.id);
+        print(
+            'Loaded ${categoryProducts.length} products for category ${category!.name}');
       } else {
         // If category not found by exact name, try using controller's filter as fallback
         controller.filterByCategory(widget.categoryName);
         categoryProducts = controller.filteredItems;
-        print('Using filtered items. Found ${categoryProducts.length} products');
+        print(
+            'Using filtered items. Found ${categoryProducts.length} products');
       }
     } catch (e) {
       print('Error loading category products: $e');
@@ -106,122 +109,125 @@ class _CategoryPageState extends State<CategoryPage> {
           onPressed: () => Get.back(),
         ),
       ),
-      body: isLoading 
-        ? Center(
-            child: CircularProgressIndicator(
-              color: primaryGreen,
-            ),
-          )
-        : errorMessage.isNotEmpty && categoryProducts.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red[300],
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      errorMessage,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 16,
+      body: isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                color: primaryGreen,
+              ),
+            )
+          : errorMessage.isNotEmpty && categoryProducts.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red[300],
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: loadCategoryProducts,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      SizedBox(height: 16),
+                      Text(
+                        errorMessage,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                      child: Text(
-                        'Try Again',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            : categoryProducts.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 64,
-                          color: Colors.grey[300],
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No products found in this category',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
+                      SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: loadCategoryProducts,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGreen,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: loadCategoryProducts,
-                    color: primaryGreen,
-                    child: Padding(
-                      padding: EdgeInsets.all(horizontalPadding),
+                        child: Text(
+                          'Try Again',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : categoryProducts.isEmpty
+                  ? Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Category title and count
-                          Padding(
-                            padding: EdgeInsets.symmetric(vertical: verticalPadding),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Products in ${widget.categoryName}',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  '${categoryProducts.length} items',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 64,
+                            color: Colors.grey[300],
                           ),
-
-                          // Products grid
-                          Expanded(
-                            child: GridView.builder(
-                              padding: EdgeInsets.only(bottom: 20),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                childAspectRatio: childAspectRatio,
-                                crossAxisSpacing: horizontalPadding,
-                                mainAxisSpacing: verticalPadding,
-                              ),
-                              itemCount: categoryProducts.length,
-                              itemBuilder: (context, index) {
-                                final item = categoryProducts[index];
-                                return _buildProductItem(item);
-                              },
+                          SizedBox(height: 16),
+                          Text(
+                            'No products found in this category',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
                             ),
                           ),
                         ],
                       ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: loadCategoryProducts,
+                      color: primaryGreen,
+                      child: Padding(
+                        padding: EdgeInsets.all(horizontalPadding),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Category title and count
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                  vertical: verticalPadding),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Products in ${widget.categoryName}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${categoryProducts.length} items',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Products grid
+                            Expanded(
+                              child: GridView.builder(
+                                padding: EdgeInsets.only(bottom: 20),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  childAspectRatio: childAspectRatio,
+                                  crossAxisSpacing: horizontalPadding,
+                                  mainAxisSpacing: verticalPadding,
+                                ),
+                                itemCount: categoryProducts.length,
+                                itemBuilder: (context, index) {
+                                  final item = categoryProducts[index];
+                                  return _buildProductItem(item);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
     );
   }
 

@@ -5,7 +5,7 @@ import 'package:kliktoko/home_page/HomeController/HomeController.dart';
 import 'package:kliktoko/ReusablePage/detailpage.dart';
 import '../GudangControllers/GudangController.dart';
 import '../GudangModel/ProductModel.dart';
-import '../GudangModel/CategoryModel.dart';
+import 'package:intl/intl.dart';
 
 class GudangPage extends StatefulWidget {
   const GudangPage({Key? key}) : super(key: key);
@@ -834,6 +834,7 @@ class _GudangPageState extends State<GudangPage>
               ),
               overflow: TextOverflow.ellipsis,
             ),
+            // Harga tidak ditampilkan untuk produk yang kehabisan stok
           ],
         ),
       ),
@@ -1054,6 +1055,15 @@ class _GudangPageState extends State<GudangPage>
               ),
               overflow: TextOverflow.ellipsis,
             ),
+            SizedBox(height: 2),
+            Text(
+              'Rp ${NumberFormat('#,###', 'id_ID').format(item.price)}',
+              style: TextStyle(
+                color: Color(0xFFA9CD47),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            )
           ],
         ),
       ),
