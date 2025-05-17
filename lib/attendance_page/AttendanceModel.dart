@@ -22,11 +22,11 @@ class AttendanceModel {
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     // PERBAIKAN: Tambahkan logging untuk help debugging
     print('📊 Processing attendance model from JSON: ${json.keys.join(', ')}');
-    
+
     // Parse check-in time to determine if late
     bool isUserLate = false;
     String? checkInTimeStr = json['check_in_time'] ?? json['check_in'] ?? '';
-    
+
     if (checkInTimeStr != null && checkInTimeStr.isNotEmpty) {
       try {
         // If API explicitly provides late status, use it
@@ -36,16 +36,19 @@ class AttendanceModel {
         } else {
           // Otherwise try to determine based on time
           String shiftId = '1';
-          
+
           // Extract shift ID from nested structure or direct field
-          if (json.containsKey('shift') && json['shift'] is Map<String, dynamic>) {
+          if (json.containsKey('shift') &&
+              json['shift'] is Map<String, dynamic>) {
             shiftId = json['shift']['id']?.toString() ?? '1';
           } else {
-            shiftId = json['shift_id']?.toString() ?? json['shift']?.toString() ?? '1';
+            shiftId = json['shift_id']?.toString() ??
+                json['shift']?.toString() ??
+                '1';
           }
-          
+
           print('📋 Shift ID for late calculation: $shiftId');
-          
+
           // Format: "2025-05-06T01:20:43.000000Z"
           String timeOnly;
           if (checkInTimeStr.contains('T')) {
@@ -55,17 +58,17 @@ class AttendanceModel {
           } else {
             timeOnly = checkInTimeStr;
           }
-          
+
           print('📋 Check-in time parsed: $timeOnly');
-          
+
           // Extract hours and minutes
           List<String> timeParts = timeOnly.split(':');
           if (timeParts.length >= 2) {
             int hour = int.tryParse(timeParts[0]) ?? 0;
             int minute = int.tryParse(timeParts[1]) ?? 0;
-            
+
             print('📋 Check-in hour: $hour, minute: $minute');
-            
+
             // Shift 1: late after 7:30 AM (07:30)
             // Shift 2: late after 2:30 PM (14:30)
             if (shiftId == '1') {
@@ -73,7 +76,7 @@ class AttendanceModel {
             } else if (shiftId == '2') {
               isUserLate = (hour > 14 || (hour == 14 && minute > 30));
             }
-            
+
             print('📋 Calculated late status: $isUserLate');
           }
         }
@@ -106,7 +109,7 @@ class AttendanceModel {
       print('❌ Error extracting shift ID: $e');
       shiftId = '1'; // Default to shift 1
     }
-    
+
     print('📋 Final shift ID: $shiftId');
 
     // Handle different date formats
@@ -120,9 +123,11 @@ class AttendanceModel {
         date = rawDate;
       }
     } else {
-      date = json['attendance_date'] ?? json['created_at']?.toString().split('T')[0] ?? '';
+      date = json['attendance_date'] ??
+          json['created_at']?.toString().split('T')[0] ??
+          '';
     }
-    
+
     print('📋 Date extracted: $date');
 
     // Format check-in time for display
@@ -136,7 +141,7 @@ class AttendanceModel {
         formattedCheckInTime = checkInTimeStr;
       }
     }
-    
+
     print('📋 Formatted check-in time: $formattedCheckInTime');
 
     // Format check-out time for display
@@ -151,7 +156,7 @@ class AttendanceModel {
         formattedCheckOutTime = checkOutTimeStr;
       }
     }
-    
+
     print('📋 Formatted check-out time: $formattedCheckOutTime');
 
     // PERBAIKAN: Lebih robust dalam menentukan apakah checked in
@@ -161,9 +166,10 @@ class AttendanceModel {
     } else if (checkInTimeStr != null && checkInTimeStr.isNotEmpty) {
       isCheckedIn = true;
     } else if (json.containsKey('status') && json['status'] is String) {
-      isCheckedIn = json['status'].toString().toLowerCase().contains('checked in');
+      isCheckedIn =
+          json['status'].toString().toLowerCase().contains('checked in');
     }
-    
+
     print('📋 Is checked in: $isCheckedIn');
 
     return AttendanceModel(
@@ -172,12 +178,16 @@ class AttendanceModel {
       shiftId: shiftId,
       checkInTime: formattedCheckInTime,
       checkOutTime: formattedCheckOutTime,
-      username: json['username'] ?? 
-                json['user_name'] ?? 
-                (json.containsKey('user') && json['user'] is Map ? json['user']['name'] : ''),
-      userId: json['user_id'] ?? 
-              json['id']?.toString() ?? 
-              (json.containsKey('user') && json['user'] is Map ? json['user']['id'].toString() : ''),
+      username: json['username'] ??
+          json['user_name'] ??
+          (json.containsKey('user') && json['user'] is Map
+              ? json['user']['name']
+              : ''),
+      userId: json['user_id'] ??
+          json['id']?.toString() ??
+          (json.containsKey('user') && json['user'] is Map
+              ? json['user']['id'].toString()
+              : ''),
       isLate: isUserLate,
     );
   }

@@ -5,7 +5,8 @@ import 'dart:async';
 import 'package:kliktoko/storage/storage_service.dart';
 import 'package:kliktoko/attendance_page/AttendanceModel.dart';
 import 'package:kliktoko/attendance_page/AttendanceApiService.dart';
-import 'package:kliktoko/attendance_page/ShiftModel.dart'; // Tambahkan import
+import 'package:kliktoko/attendance_page/ShiftModel.dart';
+import 'package:kliktoko/attendance_page/ShiftStatusModel.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -15,8 +16,8 @@ class SharedAttendanceController extends GetxController {
 
   // Observable variables for attendance state
   final RxBool hasCheckedIn = false.obs;
-  final RxBool hasCheckedOut = false.obs; // New observable for check-out status
-  final RxBool isLate = false.obs; // New observable for late status
+  final RxBool hasCheckedOut = false.obs;
+  final RxBool isLate = false.obs;
   final RxString selectedShift = '1'.obs;
   final RxDouble attendancePercentage = 0.85.obs;
   final RxString username = ''.obs;
@@ -24,8 +25,10 @@ class SharedAttendanceController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool hasError = false.obs;
   final RxString errorMessage = ''.obs;
-  final RxBool isOutsideShiftHours =
-      false.obs; // New observable for tracking outside shift hours
+  final RxBool isOutsideShiftHours = false.obs;
+
+  // Observable for shift status
+  final Rx<ShiftStatusModel> shiftStatus = ShiftStatusModel.empty().obs;
 
   // New observables for attendance history
   final RxList<Map<String, dynamic>> attendanceHistory =
@@ -129,11 +132,10 @@ class SharedAttendanceController extends GetxController {
   // Flag to prevent recursive calls
   bool _isCheckingAttendanceStatus = false;
 
-  // Method specifically to check if user has already checked in today
+  // Method to check shift status from new API endpoint
   Future<void> checkAttendanceStatus() async {
-    // Prevent recursive calls
     if (_isCheckingAttendanceStatus) {
-      print('⚠️ Preventing recursive call to checkAttendanceStatus');
+      print('⚠️ Mencegah pemanggilan berulang ke checkAttendanceStatus');
       return;
     }
 
@@ -143,28 +145,44 @@ class SharedAttendanceController extends GetxController {
       hasError.value = false;
       errorMessage.value = '';
 
-      // Get the attendance from the dedicated API service
-      final attendance = await _attendanceService.checkAttendanceStatus();
+      final token = await _storageService.getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('Token autentikasi tidak tersedia');
+      }
 
-      // Update observable values based on result
-      hasCheckedIn.value = attendance.isCheckedIn;
-      isLate.value = attendance.isLate;
-      hasCheckedOut.value = attendance.hasCheckedOut;
-      currentAttendance.value = attendance;
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/shifts/status'),
+        headers: await _getHeaders(token),
+      );
 
-      print(
-          '✅ Attendance status check completed: Checked in = ${hasCheckedIn.value}, Late = ${isLate.value}, Checked out = ${hasCheckedOut.value}');
+      print('📊 Status shift response: ${response.statusCode}');
 
-      // If checked in, ensure we update the shift ID too
-      if (attendance.isCheckedIn && attendance.shiftId.isNotEmpty) {
-        selectedShift.value = attendance.shiftId;
-        print('👉 Updated shift to: ${selectedShift.value}');
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        final status = ShiftStatusModel.fromJson(jsonData);
+        shiftStatus.value = status;
+
+        // Update observable values based on shift status
+        hasCheckedIn.value = status.isActive;
+        hasCheckedOut.value = status.data?.checkOut != null;
+        isLate.value = status.data?.isLate ?? false;
+
+        if (status.isActive && status.data != null) {
+          selectedShift.value = status.data!.shiftNumber.toString();
+          print('👉 Shift diperbarui ke: ${selectedShift.value}');
+        }
+
+        print(
+            '✅ Pemeriksaan status selesai: Aktif = ${status.isActive}, Terlambat = ${status.data?.isLate ?? false}');
+      } else {
+        print('❌ Gagal mendapatkan status: ${response.statusCode}');
+        hasError.value = true;
+        errorMessage.value = 'Gagal memverifikasi status kehadiran';
       }
     } catch (e) {
-      print('❌ Error checking attendance status: $e');
+      print('❌ Error saat memeriksa status: $e');
       hasError.value = true;
-      errorMessage.value =
-          'Could not verify attendance status. Please try again.';
+      errorMessage.value = 'Tidak dapat memverifikasi status kehadiran';
     } finally {
       isLoading.value = false;
       _isCheckingAttendanceStatus = false;

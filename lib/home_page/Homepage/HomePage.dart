@@ -76,7 +76,7 @@ class ClockWidget extends StatelessWidget {
 
 class HomePage extends GetView<HomeController> {
   const HomePage({Key? key}) : super(key: key);
-  
+
   @override
   Widget build(BuildContext context) {
     // Make sure controller is initialized and registered with Get
@@ -91,48 +91,57 @@ class HomePage extends GetView<HomeController> {
       controller.checkAuthAndLoadData();
     });
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F9E9), // Light green background color
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await controller.loadProducts();
-            // Also refresh attendance status when pulling to refresh
-            try {
-              await controller.attendanceController.checkAttendanceStatus();
-            } catch (e) {
-              print('Error refreshing attendance status: $e');
-            }
-            return;
-          },
-          color: const Color(0xFFA9CD47),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                  screenWidth * 0.04, // Horizontal padding (4% of screen width)
-                  screenHeight * 0.04, // Top padding (4% of screen height)
-                  screenWidth * 0.04, // Horizontal padding (4% of screen width)
-                  screenWidth * 0.04), // Bottom padding (4% of screen width)
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Clock at the top
-                  const ClockWidget(),
-                  SizedBox(height: screenHeight * 0.04),
-                  // Layered cards - Attendance status and Category cards
-                  _buildLayeredCards(screenWidth, screenHeight),
-                  SizedBox(height: screenHeight * 0.025),
-                  // Out of stock section
-                  _buildOutOfStockSection(screenWidth, screenHeight),
-                  // Add extra space at the bottom to avoid navigation bar overlap
-                  SizedBox(height: screenHeight * 0.08),
-                ],
+        backgroundColor:
+            const Color(0xFFF1F9E9), // Light green background color
+        body: SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top,
+            ),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await controller.loadProducts();
+                // Also refresh attendance status when pulling to refresh
+                try {
+                  await controller.attendanceController.checkAttendanceStatus();
+                } catch (e) {
+                  print('Error refreshing attendance status: $e');
+                }
+                return;
+              },
+              color: const Color(0xFFA9CD47),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                      screenWidth *
+                          0.04, // Horizontal padding (4% of screen width)
+                      screenHeight * 0.04, // Top padding (4% of screen height)
+                      screenWidth *
+                          0.04, // Horizontal padding (4% of screen width)
+                      screenWidth *
+                          0.04), // Bottom padding (4% of screen width)
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Clock at the top
+                      const ClockWidget(),
+                      SizedBox(height: screenHeight * 0.04),
+                      // Layered cards - Attendance status and Category cards
+                      _buildLayeredCards(screenWidth, screenHeight),
+                      SizedBox(height: screenHeight * 0.025),
+                      // Out of stock section
+                      _buildOutOfStockSection(screenWidth, screenHeight),
+                      // Add extra space at the bottom to avoid navigation bar overlap
+                      SizedBox(height: screenHeight * 0.08),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   Widget _buildLayeredCards(double screenWidth, double screenHeight) {

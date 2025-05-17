@@ -13,7 +13,7 @@ class AttendancePage extends StatelessWidget {
       Get.put(AttendanceController());
     }
     final controller = Get.find<AttendanceController>();
-    
+
     // Load user data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.attendanceController.loadUserData();
@@ -27,52 +27,60 @@ class AttendancePage extends StatelessWidget {
       backgroundColor: const Color(0xFFF1F9E9),
       body: SafeArea(
         child: GetX<AttendanceController>(
-          builder: (ctrl) => ctrl.isLoading.value 
-            ? const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFAED15C)),
-                ),
-              )
-            : _buildContent(context, screenWidth, screenHeight, ctrl),
+          builder: (ctrl) => ctrl.isLoading.value
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFFAED15C)),
+                  ),
+                )
+              : _buildContent(context, screenWidth, screenHeight, ctrl),
         ),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, double screenWidth, double screenHeight, AttendanceController controller) {
+  Widget _buildContent(BuildContext context, double screenWidth,
+      double screenHeight, AttendanceController controller) {
     return RefreshIndicator(
-      onRefresh: () async {
-        await controller.checkAttendanceStatus();
-        controller.attendanceController.loadUserData();
-        controller.attendanceController.determineShift();
-        await controller.attendanceController.loadAttendanceHistory();
-      },
-      color: const Color(0xFFAED15C),
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            screenWidth * 0.04, screenHeight * 0.04, 
-            screenWidth * 0.04, screenWidth * 0.04
+        onRefresh: () async {
+          await controller.checkAttendanceStatus();
+          controller.attendanceController.loadUserData();
+          controller.attendanceController.determineShift();
+          await controller.attendanceController.loadAttendanceHistory();
+        },
+        color: const Color(0xFFAED15C),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(screenWidth, controller),
-              SizedBox(height: screenHeight * 0.04),
-              _buildAttendanceStatusCard(screenWidth, screenHeight, controller),
-              SizedBox(height: screenHeight * 0.025),
-              _buildShiftInfoCard(screenWidth, screenHeight, controller),
-              SizedBox(height: screenHeight * 0.025),
-              _buildAttendanceHistoryCard(screenWidth, screenHeight, controller),
-              SizedBox(height: screenHeight * 0.04),
-              _buildCheckInOutButton(controller),
-              SizedBox(height: screenHeight * 0.08),
-            ],
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics()),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(screenWidth * 0.04,
+                  screenHeight * 0.04, screenWidth * 0.04, screenWidth * 0.04),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(screenWidth, controller),
+                  SizedBox(height: screenHeight * 0.04),
+                  _buildAttendanceStatusCard(
+                      screenWidth, screenHeight, controller),
+                  SizedBox(height: screenHeight * 0.025),
+                  _buildShiftInfoCard(screenWidth, screenHeight, controller),
+                  SizedBox(height: screenHeight * 0.025),
+                  _buildAttendanceHistoryCard(
+                      screenWidth, screenHeight, controller),
+                  SizedBox(height: screenHeight * 0.04),
+                  _buildCheckInOutButton(controller),
+                  SizedBox(height: screenHeight * 0.08),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   // Header with profile info
@@ -94,27 +102,37 @@ class AttendancePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Obx(() => Text(
-                      controller.username.value.isNotEmpty ? controller.username.value : 'User',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      overflow: TextOverflow.ellipsis,
-                    )),
+                          controller.username.value.isNotEmpty
+                              ? controller.username.value
+                              : 'User',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        )),
                     Obx(() {
-                      final isOutsideShiftHours = controller.attendanceController.isOutsideShiftHours.value;
+                      final isOutsideShiftHours = controller
+                          .attendanceController.isOutsideShiftHours.value;
                       return Row(
                         children: [
                           Flexible(
                             child: Text(
-                              isOutsideShiftHours ? 'Selamat Beristirahat' : 'Selamat Datang Kembali',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                              isOutsideShiftHours
+                                  ? 'Selamat Beristirahat'
+                                  : 'Selamat Datang Kembali',
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w500),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            isOutsideShiftHours ? Icons.nightlight_round : Icons.waving_hand,
-                            color: isOutsideShiftHours ? Colors.indigo : Colors.amber,
-                            size: 18
-                          )
+                              isOutsideShiftHours
+                                  ? Icons.nightlight_round
+                                  : Icons.waving_hand,
+                              color: isOutsideShiftHours
+                                  ? Colors.indigo
+                                  : Colors.amber,
+                              size: 18)
                         ],
                       );
                     }),
@@ -130,12 +148,14 @@ class AttendancePage extends StatelessWidget {
   }
 
   // Card showing attendance status
-  Widget _buildAttendanceStatusCard(double screenWidth, double screenHeight, AttendanceController controller) {
+  Widget _buildAttendanceStatusCard(double screenWidth, double screenHeight,
+      AttendanceController controller) {
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Status Kehadiran', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+          Text('Status Kehadiran',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600])),
           const SizedBox(height: 11.5),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -150,44 +170,51 @@ class AttendancePage extends StatelessWidget {
                         return Row(
                           children: [
                             const SizedBox(
-                              width: 16, height: 16,
+                              width: 16,
+                              height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFAED15C)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFFAED15C)),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Memeriksa status...',
-                              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                              style: TextStyle(
+                                  fontSize: 18, color: Colors.grey[600]),
                             ),
                           ],
                         );
                       }
 
-                      // Status text and color
+                      // Status text and color based on shift status
                       String statusText;
                       Color? statusColor;
 
-                      if (!controller.hasCheckedIn.value) {
-                        statusText = 'Anda Belum Absen';
-                        statusColor = Colors.red[700];
-                      } else if (controller.isLate.value) {
-                        statusText = 'Anda Terlambat';
-                        statusColor = Colors.orange[700];
+                      final status =
+                          controller.attendanceController.shiftStatus.value;
+
+                      if (status.isActive) {
+                        if (status.data?.checkOut != null) {
+                          statusText = 'Anda Sudah Check-out';
+                          statusColor = Colors.blue[700];
+                        } else if (status.data?.isLate ?? false) {
+                          statusText = 'Anda Terlambat';
+                          statusColor = Colors.orange[700];
+                        } else {
+                          statusText = 'Anda Sedang Aktif';
+                          statusColor = Colors.green[700];
+                        }
                       } else {
-                        statusText = 'Anda Sudah Absen';
-                        statusColor = Colors.green[700];
-                      }
-
-                      if (controller.hasCheckedIn.value && controller.hasCheckedOut.value) {
-                        statusText = 'Anda Sudah Check-out';
-                        statusColor = Colors.blue[700];
-                      }
-
-                      if (controller.attendanceController.isOutsideShiftHours.value && !controller.hasCheckedIn.value) {
-                        statusText = 'Diluar Jam Kerja';
-                        statusColor = Colors.indigo[700];
+                        if (controller
+                            .attendanceController.isOutsideShiftHours.value) {
+                          statusText = 'Di Luar Jam Kerja';
+                          statusColor = Colors.indigo[700];
+                        } else {
+                          statusText = status.message;
+                          statusColor = Colors.red[700];
+                        }
                       }
 
                       return Text(
@@ -201,65 +228,79 @@ class AttendancePage extends StatelessWidget {
                       );
                     }),
                     SizedBox(height: screenHeight * 0.005),
-                    
+
                     // Shift info
                     Obx(() {
-                      final shiftTime = controller.getShiftTime(controller.selectedShift.value);
+                      final shiftTime = controller
+                          .getShiftTime(controller.selectedShift.value);
                       final bool isNightMessage = shiftTime == 'Selamat Tidur!';
 
                       return isNightMessage
-                        ? Text(
-                            shiftTime,
-                            style: TextStyle(fontSize: 12, color: Colors.indigo[400], fontWeight: FontWeight.w500),
-                          )
-                        : Row(
-                            children: [
-                              Text(
-                                'Shift ${controller.selectedShift.value} | ',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  shiftTime,
-                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                  overflow: TextOverflow.ellipsis,
+                          ? Text(
+                              shiftTime,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.indigo[400],
+                                  fontWeight: FontWeight.w500),
+                            )
+                          : Row(
+                              children: [
+                                Text(
+                                  'Shift ${controller.selectedShift.value} | ',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey[600]),
                                 ),
-                              ),
-                            ],
-                          );
+                                Expanded(
+                                  child: Text(
+                                    shiftTime,
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey[600]),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            );
                     }),
                     SizedBox(height: screenHeight * 0.005),
-                    
+
                     // Date
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                        Icon(Icons.calendar_today,
+                            size: 14, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now()),
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            DateFormat('EEEE, d MMMM yyyy', 'id_ID')
+                                .format(DateTime.now()),
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey[600]),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                    
+
                     // Check-in time
                     Obx(() {
-                      if (controller.hasCheckedIn.value && 
-                          controller.currentAttendance.value.checkInTime != null && 
-                          controller.currentAttendance.value.checkInTime!.isNotEmpty) {
+                      if (controller.hasCheckedIn.value &&
+                          controller.currentAttendance.value.checkInTime !=
+                              null &&
+                          controller.currentAttendance.value.checkInTime!
+                              .isNotEmpty) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Row(
                             children: [
-                              Icon(Icons.login, size: 14, color: Colors.green[600]),
+                              Icon(Icons.login,
+                                  size: 14, color: Colors.green[600]),
                               const SizedBox(width: 4),
                               Text(
                                 'Check-in: ${controller.currentAttendance.value.checkInTime}',
                                 style: TextStyle(
-                                  fontSize: 12, color: Colors.green[600], fontWeight: FontWeight.w500),
+                                    fontSize: 12,
+                                    color: Colors.green[600],
+                                    fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
@@ -267,22 +308,27 @@ class AttendancePage extends StatelessWidget {
                       }
                       return const SizedBox.shrink();
                     }),
-                    
+
                     // Check-out time
                     Obx(() {
-                      if (controller.hasCheckedOut.value && 
-                          controller.currentAttendance.value.checkOutTime != null && 
-                          controller.currentAttendance.value.checkOutTime!.isNotEmpty) {
+                      if (controller.hasCheckedOut.value &&
+                          controller.currentAttendance.value.checkOutTime !=
+                              null &&
+                          controller.currentAttendance.value.checkOutTime!
+                              .isNotEmpty) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Row(
                             children: [
-                              Icon(Icons.logout, size: 14, color: Colors.blue[600]),
+                              Icon(Icons.logout,
+                                  size: 14, color: Colors.blue[600]),
                               const SizedBox(width: 4),
                               Text(
                                 'Check-out: ${controller.currentAttendance.value.checkOutTime}',
                                 style: TextStyle(
-                                  fontSize: 12, color: Colors.blue[600], fontWeight: FontWeight.w500),
+                                    fontSize: 12,
+                                    color: Colors.blue[600],
+                                    fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
@@ -301,13 +347,15 @@ class AttendancePage extends StatelessWidget {
   }
 
   // Card showing shift info
-  Widget _buildShiftInfoCard(double screenWidth, double screenHeight, AttendanceController controller) {
+  Widget _buildShiftInfoCard(double screenWidth, double screenHeight,
+      AttendanceController controller) {
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Obx(() {
-            final isOutsideShiftHours = controller.attendanceController.isOutsideShiftHours.value;
+            final isOutsideShiftHours =
+                controller.attendanceController.isOutsideShiftHours.value;
             return Text(
               isOutsideShiftHours ? 'Status Waktu:' : 'Shift Saat Ini:',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
@@ -315,21 +363,29 @@ class AttendancePage extends StatelessWidget {
           }),
           SizedBox(height: screenHeight * 0.015),
           Obx(() {
-            final shiftTime = controller.getShiftTime(controller.selectedShift.value);
+            final shiftTime =
+                controller.getShiftTime(controller.selectedShift.value);
             final bool isNightMessage = shiftTime == 'Selamat Tidur!';
-            final isOutsideShiftHours = controller.attendanceController.isOutsideShiftHours.value;
+            final isOutsideShiftHours =
+                controller.attendanceController.isOutsideShiftHours.value;
 
             if (isNightMessage || isOutsideShiftHours) {
               return Text(
                 'Selamat Tidur!',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.indigo),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.indigo),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
               );
             } else {
               return Text(
                 'Shift ${controller.selectedShift.value} : (${controller.getShiftTime(controller.selectedShift.value)})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.blue),
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
               );
@@ -341,7 +397,8 @@ class AttendancePage extends StatelessWidget {
   }
 
   // Card showing attendance history
-  Widget _buildAttendanceHistoryCard(double screenWidth, double screenHeight, AttendanceController controller) {
+  Widget _buildAttendanceHistoryCard(double screenWidth, double screenHeight,
+      AttendanceController controller) {
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,10 +406,14 @@ class AttendancePage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Riwayat Kehadiran', 
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800])),
+              Text('Riwayat Kehadiran',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800])),
               InkWell(
-                onTap: () => controller.attendanceController.loadAttendanceHistory(),
+                onTap: () =>
+                    controller.attendanceController.loadAttendanceHistory(),
                 child: Icon(Icons.refresh, size: 18, color: Colors.blue[400]),
               ),
             ],
@@ -364,10 +425,12 @@ class AttendancePage extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: SizedBox(
-                    height: 20, width: 20,
+                    height: 20,
+                    width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[300]!),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Colors.blue[300]!),
                     ),
                   ),
                 ),
@@ -380,10 +443,12 @@ class AttendancePage extends StatelessWidget {
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(Icons.history_toggle_off, size: 36, color: Colors.grey[400]),
+                      Icon(Icons.history_toggle_off,
+                          size: 36, color: Colors.grey[400]),
                       const SizedBox(height: 8),
                       Text('Belum ada riwayat kehadiran',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[600])),
                     ],
                   ),
                 ),
@@ -391,12 +456,17 @@ class AttendancePage extends StatelessWidget {
             }
 
             // Show most recent 3 attendance records
-            final historyToShow = controller.attendanceController.attendanceHistory.take(3).toList();
+            final historyToShow = controller
+                .attendanceController.attendanceHistory
+                .take(3)
+                .toList();
 
             return Column(
               children: [
-                ...historyToShow.map((item) => _buildHistoryItem(item, screenWidth)),
-                if (controller.attendanceController.attendanceHistory.length > 3)
+                ...historyToShow
+                    .map((item) => _buildHistoryItem(item, screenWidth)),
+                if (controller.attendanceController.attendanceHistory.length >
+                    3)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Center(
@@ -411,7 +481,10 @@ class AttendancePage extends StatelessWidget {
                           );
                         },
                         child: Text('Lihat Semua',
-                          style: TextStyle(fontSize: 12, color: Colors.blue[600], fontWeight: FontWeight.w500)),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue[600],
+                                fontWeight: FontWeight.w500)),
                       ),
                     ),
                   ),
@@ -426,8 +499,10 @@ class AttendancePage extends StatelessWidget {
   // Helper widget to build history items
   Widget _buildHistoryItem(Map<String, dynamic> item, double screenWidth) {
     // Extract and format date
-    String date = item['date'] ?? item['attendance_date'] ?? 
-                  item['created_at']?.toString().split(' ')[0] ?? '';
+    String date = item['date'] ??
+        item['attendance_date'] ??
+        item['created_at']?.toString().split(' ')[0] ??
+        '';
     try {
       if (date.isNotEmpty) {
         final parsedDate = DateTime.parse(date);
@@ -447,12 +522,13 @@ class AttendancePage extends StatelessWidget {
     // Determine if late
     bool isLate = item['is_late'] == true;
     if (!isLate && checkInTime != '-') {
-      String shiftId = item['shift_id']?.toString() ?? item['shift']?.toString() ?? '1';
+      String shiftId =
+          item['shift_id']?.toString() ?? item['shift']?.toString() ?? '1';
       List<String> timeParts = checkInTime.split(':');
       if (timeParts.length >= 2) {
         int hour = int.tryParse(timeParts[0]) ?? 0;
         int minute = int.tryParse(timeParts[1]) ?? 0;
-        
+
         if (shiftId == '1') {
           isLate = (hour > 7 || (hour == 7 && minute > 30));
         } else if (shiftId == '2') {
@@ -475,23 +551,31 @@ class AttendancePage extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(date,
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12, color: Colors.grey[700])),
+                style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    color: Colors.grey[700])),
           ),
           // Check-in time
           Expanded(
             flex: 3,
             child: Row(
               children: [
-                Icon(Icons.login, size: 14, color: isLate ? Colors.orange[700] : Colors.green[600]),
+                Icon(Icons.login,
+                    size: 14,
+                    color: isLate ? Colors.orange[700] : Colors.green[600]),
                 const SizedBox(width: 2),
-                Text(checkInTime,
+                Text(
+                  checkInTime,
                   style: TextStyle(
                     fontSize: 12,
                     color: isLate ? Colors.orange[700] : Colors.green[600],
                     fontWeight: isLate ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
-                if (isLate) Icon(Icons.warning_rounded, size: 12, color: Colors.orange[700]),
+                if (isLate)
+                  Icon(Icons.warning_rounded,
+                      size: 12, color: Colors.orange[700]),
               ],
             ),
           ),
@@ -500,13 +584,19 @@ class AttendancePage extends StatelessWidget {
             flex: 3,
             child: Row(
               children: [
-                Icon(Icons.logout, size: 14, 
-                    color: checkOutTime != '-' ? Colors.blue[600] : Colors.grey[400]),
+                Icon(Icons.logout,
+                    size: 14,
+                    color: checkOutTime != '-'
+                        ? Colors.blue[600]
+                        : Colors.grey[400]),
                 const SizedBox(width: 2),
-                Text(checkOutTime,
+                Text(
+                  checkOutTime,
                   style: TextStyle(
                     fontSize: 12,
-                    color: checkOutTime != '-' ? Colors.blue[600] : Colors.grey[400],
+                    color: checkOutTime != '-'
+                        ? Colors.blue[600]
+                        : Colors.grey[400],
                   ),
                 ),
               ],
@@ -523,7 +613,8 @@ class AttendancePage extends StatelessWidget {
       final bool isCheckedIn = controller.hasCheckedIn.value;
       final bool isCheckedOut = controller.hasCheckedOut.value;
       final bool isLoading = controller.isLoading.value;
-      final bool isOutsideShiftHours = controller.attendanceController.isOutsideShiftHours.value;
+      final bool isOutsideShiftHours =
+          controller.attendanceController.isOutsideShiftHours.value;
 
       // Loading state
       if (isLoading) {
@@ -534,15 +625,19 @@ class AttendancePage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 20, height: 20,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               ),
               const SizedBox(width: 10),
-              const Text('Memproses...', 
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text('Memproses...',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16)),
             ],
           ),
         );
@@ -553,8 +648,11 @@ class AttendancePage extends StatelessWidget {
         return _buildButton(
           color: Colors.grey[400]!,
           onPressed: null,
-          child: const Text('Diluar Jam Kerja', 
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          child: const Text('Diluar Jam Kerja',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16)),
         );
       }
 
@@ -563,8 +661,11 @@ class AttendancePage extends StatelessWidget {
         return _buildButton(
           color: Colors.grey,
           onPressed: null,
-          child: const Text('Sudah Check-out', 
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          child: const Text('Sudah Check-out',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18)),
         );
       }
 
@@ -573,8 +674,11 @@ class AttendancePage extends StatelessWidget {
         return _buildButton(
           color: Colors.red,
           onPressed: () => controller.checkOut(),
-          child: const Text('Check-out', 
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          child: const Text('Check-out',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18)),
         );
       }
 
@@ -584,7 +688,7 @@ class AttendancePage extends StatelessWidget {
         onPressed: () async {
           // Verify attendance status before attempting check-in
           await controller.checkAttendanceStatus();
-          
+
           if (controller.hasCheckedIn.value) {
             Get.snackbar(
               'Sudah Absen',
@@ -595,11 +699,14 @@ class AttendancePage extends StatelessWidget {
             );
             return;
           }
-          
+
           await controller.checkIn();
         },
-        child: const Text('Absen Sekarang', 
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        child: const Text('Absen Sekarang',
+            style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 18)),
       );
     });
   }
@@ -627,7 +734,10 @@ class AttendancePage extends StatelessWidget {
   }
 
   // Helper method to create consistent buttons
-  Widget _buildButton({required Color color, required VoidCallback? onPressed, required Widget child}) {
+  Widget _buildButton(
+      {required Color color,
+      required VoidCallback? onPressed,
+      required Widget child}) {
     return SizedBox(
       width: double.infinity,
       height: 50,
