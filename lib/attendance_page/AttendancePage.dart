@@ -112,11 +112,13 @@ class AttendancePage extends StatelessWidget {
                     Obx(() {
                       final isOutsideShiftHours = controller
                           .attendanceController.isOutsideShiftHours.value;
+                      final shiftStatus =
+                          controller.attendanceController.shiftStatus.value;
                       return Row(
                         children: [
                           Flexible(
                             child: Text(
-                              isOutsideShiftHours
+                              isOutsideShiftHours || !shiftStatus.isActive
                                   ? 'Selamat Beristirahat'
                                   : 'Selamat Datang Kembali',
                               style: const TextStyle(
@@ -126,12 +128,13 @@ class AttendancePage extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                              isOutsideShiftHours
+                              isOutsideShiftHours || !shiftStatus.isActive
                                   ? Icons.nightlight_round
                                   : Icons.waving_hand,
-                              color: isOutsideShiftHours
-                                  ? Colors.indigo
-                                  : Colors.amber,
+                              color:
+                                  isOutsideShiftHours || !shiftStatus.isActive
+                                      ? Colors.indigo
+                                      : Colors.amber,
                               size: 18)
                         ],
                       );
@@ -229,38 +232,6 @@ class AttendancePage extends StatelessWidget {
                     }),
                     SizedBox(height: screenHeight * 0.005),
 
-                    // Shift info
-                    Obx(() {
-                      final shiftTime = controller
-                          .getShiftTime(controller.selectedShift.value);
-                      final bool isNightMessage = shiftTime == 'Selamat Tidur!';
-
-                      return isNightMessage
-                          ? Text(
-                              shiftTime,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.indigo[400],
-                                  fontWeight: FontWeight.w500),
-                            )
-                          : Row(
-                              children: [
-                                Text(
-                                  'Shift ${controller.selectedShift.value} | ',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey[600]),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    shiftTime,
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey[600]),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            );
-                    }),
                     SizedBox(height: screenHeight * 0.005),
 
                     // Date
@@ -356,22 +327,25 @@ class AttendancePage extends StatelessWidget {
           Obx(() {
             final isOutsideShiftHours =
                 controller.attendanceController.isOutsideShiftHours.value;
+            final shiftStatus =
+                controller.attendanceController.shiftStatus.value;
             return Text(
-              isOutsideShiftHours ? 'Status Waktu:' : 'Shift Saat Ini:',
+              isOutsideShiftHours || !shiftStatus.isActive
+                  ? 'Status Waktu:'
+                  : 'Shift Saat Ini:',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             );
           }),
           SizedBox(height: screenHeight * 0.015),
           Obx(() {
-            final shiftTime =
-                controller.getShiftTime(controller.selectedShift.value);
-            final bool isNightMessage = shiftTime == 'Selamat Tidur!';
             final isOutsideShiftHours =
                 controller.attendanceController.isOutsideShiftHours.value;
+            final shiftStatus =
+                controller.attendanceController.shiftStatus.value;
 
-            if (isNightMessage || isOutsideShiftHours) {
+            if (isOutsideShiftHours || !shiftStatus.isActive) {
               return Text(
-                'Selamat Tidur!',
+                'Tidak ada shift saat ini.',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -380,8 +354,10 @@ class AttendancePage extends StatelessWidget {
                 maxLines: 2,
               );
             } else {
+              final shiftTime =
+                  controller.getShiftTime(controller.selectedShift.value);
               return Text(
-                'Shift ${controller.selectedShift.value} : (${controller.getShiftTime(controller.selectedShift.value)})',
+                'Shift ${controller.selectedShift.value} : ($shiftTime)',
                 style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -643,8 +619,11 @@ class AttendancePage extends StatelessWidget {
         );
       }
 
-      // Outside shift hours
-      if (isOutsideShiftHours && !isCheckedIn) {
+      // Outside shift hours or no active shift
+      if ((isOutsideShiftHours ||
+              controller.attendanceController.shiftStatus.value.message ==
+                  "Shift tidak ada, silahkan istirahat") &&
+          !isCheckedIn) {
         return _buildButton(
           color: Colors.grey[400]!,
           onPressed: null,

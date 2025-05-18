@@ -74,9 +74,6 @@ class SharedAttendanceController extends GetxController {
     try {
       _isDeterminingShift = true;
 
-      final now = DateTime.now();
-      final currentTime = now.hour * 60 + now.minute; // Convert to minutes
-
       // Cek apakah ada data shift dari API
       if (!shiftList.isEmpty) {
         // Jika ada data shift dari API, gunakan determineShiftFromServer() sebagai gantinya
@@ -89,40 +86,14 @@ class SharedAttendanceController extends GetxController {
         return;
       }
 
-      print(
-          '🕒 Menentukan shift berdasarkan waktu lokal: ${now.hour}:${now.minute}:${now.second}');
+      print('⚠️ Tidak ada data shift dari API, menunggu data shift...');
+      // Set nilai default sementara
+      selectedShift.value = '1';
+      isOutsideShiftHours.value = true;
 
-      // Gunakan nilai default jika tidak ada data dari API
-      // Shift 1: 07:30-14:30 (450-870 minutes)
-      // Shift 2: 14:30-03:30 (870-210 minutes, melewati tengah malam)
-
-      // Shift 1: 07:30-14:30
-      final shift1Start = 450; // 07:30 dalam menit
-      final shift1End = 870; // 14:30 dalam menit
-
-      // Shift 2: 14:30-03:30 (melewati tengah malam)
-      final shift2Start = 870; // 14:30 dalam menit
-      final shift2End = 210; // 03:30 dalam menit
-
-      // Cek apakah waktu saat ini berada dalam Shift 1
-      if (currentTime >= shift1Start && currentTime < shift1End) {
-        selectedShift.value = '1';
-        isOutsideShiftHours.value = false;
-        print('🔄 Shift lokal diatur ke: Shift 1 (07:30-14:30)');
-      }
-      // Cek apakah waktu saat ini berada dalam Shift 2 (yang melewati tengah malam)
-      else if (currentTime >= shift2Start || currentTime < shift2End) {
-        selectedShift.value = '2';
-        isOutsideShiftHours.value = false;
-        print('🔄 Shift lokal diatur ke: Shift 2 (14:30-03:30)');
-      }
-      // Jika di luar jam shift (setelah 03:30 dan sebelum 07:30)
-      else {
-        isOutsideShiftHours.value = true;
-        // Gunakan Shift 1 sebagai referensi jika di luar jam kerja
-        selectedShift.value = '1';
-        print(
-            '🔄 Di luar jam kerja (${now.hour}:${now.minute}), menggunakan Shift 1 sebagai referensi');
+      // Coba muat ulang data shift
+      if (!_isShiftTimerRunning) {
+        loadShiftList();
       }
     } finally {
       _isDeterminingShift = false;
