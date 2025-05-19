@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:kliktoko/attendance_page/SharedAttendanceController.dart';
+
 import 'package:kliktoko/home_page/HomeBindings/HomeBindings.dart';
 import 'package:kliktoko/home_page/HomeController/HomeController.dart';
 import 'package:kliktoko/home_page/HomePage/HomePage.dart';
@@ -19,7 +19,7 @@ void main() async {
   // Initialize storage service and SharedAttendanceController
   final storageService = Get.put(StorageService());
   await storageService.init();
-  Get.put(SharedAttendanceController(), permanent: true); // Add this line
+
   Get.put(HomeController(), permanent: true); // Add this line
 
   runApp(const MyApp());

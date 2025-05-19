@@ -5,7 +5,6 @@ import 'package:kliktoko/profile_page/ProfilePage/HistoryKerjaPage.dart';
 import 'package:kliktoko/profile_page/ProfilePage/form_laporan_kerja_page.dart';
 import 'package:kliktoko/APIService/ApiService.dart';
 import 'package:kliktoko/storage/storage_service.dart';
-import 'package:kliktoko/attendance_page/SharedAttendanceController.dart';
 
 class ProfileController extends GetxController {
   final ApiService _apiService = ApiService();
@@ -15,7 +14,6 @@ class ProfileController extends GetxController {
   var totalShiftsPerMonth = '0'.obs;
 
   // For attendance history integration
-  late SharedAttendanceController _attendanceController;
 
   // Observable for attendance history
   final RxList<Map<String, dynamic>> attendanceHistory =
@@ -27,10 +25,6 @@ class ProfileController extends GetxController {
     super.onInit();
 
     // Initialize the shared attendance controller
-    if (!Get.isRegistered<SharedAttendanceController>()) {
-      Get.put(SharedAttendanceController());
-    }
-    _attendanceController = Get.find<SharedAttendanceController>();
 
     // Initialize storage and load user data
     _storageService.init().then((_) {
@@ -40,7 +34,7 @@ class ProfileController extends GetxController {
     });
 
     // Listen for changes in attendance history to recalculate shifts
-    ever(_attendanceController.attendanceHistory, (_) {
+    ever(attendanceHistory, (_) {
       calculateTotalShifts();
       updateAttendanceHistory();
     });
@@ -108,13 +102,13 @@ class ProfileController extends GetxController {
   void calculateTotalShifts() {
     try {
       // First check if attendance history is loaded
-      if (_attendanceController.attendanceHistory.isEmpty) {
+      if (attendanceHistory.isEmpty) {
         // If history is still loading, don't update yet
-        if (_attendanceController.isHistoryLoading.value) {
+        if (isHistoryLoading.value) {
           return;
         }
         // If not loading but still empty, try to load it
-        _attendanceController.loadAttendanceHistory();
+        loadAttendanceHistory();
         return;
       }
 
@@ -124,8 +118,7 @@ class ProfileController extends GetxController {
       final currentYear = now.year;
 
       // Filter attendance records for current month
-      final currentMonthAttendance =
-          _attendanceController.attendanceHistory.where((attendance) {
+      final currentMonthAttendance = attendanceHistory.where((attendance) {
         // Get date from attendance record
         String dateStr = attendance['date'] ??
             attendance['attendance_date'] ??
@@ -155,13 +148,12 @@ class ProfileController extends GetxController {
 
   // Update attendance history from shared controller
   void updateAttendanceHistory() {
-    if (_attendanceController.attendanceHistory.isEmpty &&
-        !_attendanceController.isHistoryLoading.value) {
+    if (attendanceHistory.isEmpty && !isHistoryLoading.value) {
       return;
     }
 
     // Copy the attendance history from shared controller
-    attendanceHistory.value = _attendanceController.attendanceHistory
+    attendanceHistory.value = attendanceHistory
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
 
@@ -172,7 +164,7 @@ class ProfileController extends GetxController {
   Future<void> refreshAttendanceData() async {
     try {
       isHistoryLoading.value = true;
-      await _attendanceController.loadAttendanceHistory();
+      await loadAttendanceHistory();
       calculateTotalShifts();
       updateAttendanceHistory();
       isHistoryLoading.value = false;
@@ -186,7 +178,7 @@ class ProfileController extends GetxController {
   Future<void> loadAttendanceHistory() async {
     try {
       isHistoryLoading.value = true;
-      await _attendanceController.loadAttendanceHistory();
+      await loadAttendanceHistory();
       updateAttendanceHistory();
       isHistoryLoading.value = false;
     } catch (e) {

@@ -76,7 +76,7 @@ class ClockWidget extends StatelessWidget {
 
 class HomePage extends GetView<HomeController> {
   const HomePage({Key? key}) : super(key: key);
-  
+
   @override
   Widget build(BuildContext context) {
     // Make sure controller is initialized and registered with Get
@@ -87,9 +87,7 @@ class HomePage extends GetView<HomeController> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     // Call loadUserData explicitly to ensure username is loaded
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.checkAuthAndLoadData();
-    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F9E9), // Light green background color
       body: SafeArea(
@@ -97,12 +95,6 @@ class HomePage extends GetView<HomeController> {
           onRefresh: () async {
             await controller.loadProducts();
             // Also refresh attendance status when pulling to refresh
-            try {
-              await controller.attendanceController.checkAttendanceStatus();
-            } catch (e) {
-              print('Error refreshing attendance status: $e');
-            }
-            return;
           },
           color: const Color(0xFFA9CD47),
           child: SingleChildScrollView(
@@ -242,117 +234,11 @@ class HomePage extends GetView<HomeController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Obx(() {
-            // Get status text and color based on attendance state
-            String statusText = controller.getStatusMessage();
-            Color statusColor = controller.getStatusColor();
-
-            return Text(
-              statusText,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: screenWidth < 360 ? 18 : 20,
-                color: statusColor,
-              ),
-              overflow: TextOverflow.ellipsis,
-            );
-          }),
           SizedBox(height: screenHeight * 0.005),
-          Obx(() {
-            // Get shift time
-            final shiftTime =
-                controller.getShiftTime(controller.selectedShift.value);
 
-            // Check if it's night time message (Selamat Tidur)
-            final bool isNightMessage = shiftTime == 'Selamat Tidur!';
-
-            return isNightMessage
-                ? Text(
-                    shiftTime,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.indigo[400],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  )
-                : Row(
-                    children: [
-                      Text(
-                        'Shift ${controller.selectedShift.value} | ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          shiftTime,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  );
-          }),
           // Add check-in time if available
-          Obx(() {
-            if (controller.hasCheckedIn.value &&
-                controller.attendanceController.currentAttendance.value
-                        .checkInTime !=
-                    null &&
-                controller.attendanceController.currentAttendance.value
-                    .checkInTime!.isNotEmpty) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.login, size: 14, color: Colors.green[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Check-in: ${controller.attendanceController.currentAttendance.value.checkInTime}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.green[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
+
           // Add check-out time if available
-          Obx(() {
-            if (controller.hasCheckedOut.value &&
-                controller.attendanceController.currentAttendance.value
-                        .checkOutTime !=
-                    null &&
-                controller.attendanceController.currentAttendance.value
-                    .checkOutTime!.isNotEmpty) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, size: 14, color: Colors.blue[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Check-out: ${controller.attendanceController.currentAttendance.value.checkOutTime}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
         ],
       ),
     );

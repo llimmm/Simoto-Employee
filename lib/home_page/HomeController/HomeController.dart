@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kliktoko/attendance_page/SharedAttendanceController.dart';
+import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'package:kliktoko/attendance_page/controllers/attendance_controller.dart';
+
 import 'package:kliktoko/storage/storage_service.dart';
 import '../../APIService/ApiService.dart';
 import '../../gudang_page/GudangModel/ProductModel.dart';
@@ -33,28 +35,7 @@ class HomeController extends GetxController {
   final CategoryService _categoryService =
       CategoryService(); // Added CategoryService
 
-  // Get shared attendance controller with error handling
-  SharedAttendanceController? _attendanceController;
-  SharedAttendanceController get attendanceController {
-    if (_attendanceController == null) {
-      try {
-        _attendanceController = SharedAttendanceController.to;
-      } catch (e) {
-        print('Error getting SharedAttendanceController: $e');
-        // Create and register the controller if it doesn't exist
-        _attendanceController = Get.put(SharedAttendanceController());
-      }
-    }
-    return _attendanceController!;
-  }
-
-  // Delegate attendance-related operations to shared controller
-  RxBool get hasCheckedIn => attendanceController.hasCheckedIn;
-  RxBool get hasCheckedOut => attendanceController.hasCheckedOut;
-  RxBool get isLate => attendanceController.isLate;
-  RxString get selectedShift => attendanceController.selectedShift;
-  RxBool get isOutsideShiftHours => attendanceController.isOutsideShiftHours;
-
+  @override
   void onItemTapped(int index) {
     selectedIndex.value = index;
   }
@@ -67,9 +48,13 @@ class HomeController extends GetxController {
   }
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
 
+    final token = await _storageService.getToken();
+    if (token != null && !Get.isRegistered<AttendanceController>()) {
+      Get.put(AttendanceController(token: token), permanent: true);
+    }
     // Initialize time immediately
     _updateTimeAndDate();
 
@@ -78,19 +63,7 @@ class HomeController extends GetxController {
       _updateTimeAndDate();
     });
 
-    _storageService.init().then((_) {
-      checkAuthAndLoadData();
-    });
-
     // Register to listen for changes in the shared controller
-    try {
-      ever(attendanceController.hasCheckedIn, (_) => update());
-      ever(attendanceController.isLate, (_) => update());
-      ever(attendanceController.hasCheckedOut, (_) => update());
-      ever(attendanceController.isOutsideShiftHours, (_) => update());
-    } catch (e) {
-      print('Error setting up attendance listeners: $e');
-    }
 
     // Load categories
     loadCategories();
@@ -159,27 +132,6 @@ class HomeController extends GetxController {
     }
   }
 
-  Future<void> checkAuthAndLoadData() async {
-    bool isLoggedIn = await _storageService.isLoggedIn();
-    if (isLoggedIn) {
-      loadUserData();
-      loadProducts();
-
-      // Make sure to update attendance data
-      try {
-        attendanceController.determineShift();
-        attendanceController.checkAttendanceStatus();
-      } catch (e) {
-        print('Error determining shift: $e');
-      }
-    } else {
-      // If not logged in, just set a default username and don't try to load products
-      username.value = 'Guest';
-      hasError.value = true;
-      errorMessage.value = 'Please login to see product information';
-    }
-  }
-
   Future<void> loadProducts() async {
     try {
       isLoading.value = true;
@@ -231,63 +183,7 @@ class HomeController extends GetxController {
     return outOfStockProducts.take(limit).toList();
   }
 
-  String getShiftTime(String shift) {
-    try {
-      return attendanceController.getShiftTime(shift);
-    } catch (e) {
-      print('Error getting shift time: $e');
-      // Default shift times if controller fails
-      final now = DateTime.now();
-      final currentTime = now.hour * 60 + now.minute; // Convert to minutes
-
-      // If it's after 21:30 (1290 minutes) or before 07:30 (450 minutes),
-      // it's outside of any shift - night time
-      if (currentTime >= 1290 || currentTime < 450) {
-        return 'Selamat Tidur!';
-      }
-
-      switch (shift) {
-        case '1':
-          return '07:30 - 14:30';
-        case '2':
-          return '14:30 - 21:30';
-        default:
-          return '07:30 - 14:30';
-      }
-    }
-  }
-
   // Get status message based on current attendance state
-  String getStatusMessage() {
-    if (!hasCheckedIn.value) {
-      if (isOutsideShiftHours.value) {
-        return 'Diluar Jam Kerja';
-      }
-      return 'Anda Belum Absen';
-    } else if (isLate.value) {
-      return 'Anda Terlambat';
-    } else if (hasCheckedOut.value) {
-      return 'Anda Sudah Check-out';
-    } else {
-      return 'Anda Sudah Absen';
-    }
-  }
-
-  // Get status color based on current attendance state
-  Color getStatusColor() {
-    if (!hasCheckedIn.value) {
-      if (isOutsideShiftHours.value) {
-        return Colors.indigo.shade700;
-      }
-      return Colors.red.shade700;
-    } else if (isLate.value) {
-      return Colors.orange.shade700;
-    } else if (hasCheckedOut.value) {
-      return Colors.blue.shade700;
-    } else {
-      return Colors.green.shade700;
-    }
-  }
 
   Future<void> loadUserData() async {
     try {
@@ -352,57 +248,6 @@ class HomeController extends GetxController {
   }
 
   // Method to check in directly from HomePage
-  Future<void> checkIn() async {
-    try {
-      // If already checked in, show a message
-      if (hasCheckedIn.value) {
-        Get.snackbar(
-          'Already Checked In',
-          'You have already checked in today',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFAED15C),
-          colorText: Colors.black,
-        );
-        return;
-      }
-
-      // Show loading indicator
-      Get.dialog(
-        Dialog(
-          backgroundColor: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFAED15C)),
-                ),
-                const SizedBox(height: 15),
-                const Text('Processing...'),
-              ],
-            ),
-          ),
-        ),
-        barrierDismissible: false,
-      );
-
-      await attendanceController.checkIn();
-      Get.back(); // Close loading dialog
-    } catch (e) {
-      // Close loading dialog if open
-      if (Get.isDialogOpen ?? false) Get.back();
-
-      print('Error checking in from HomePage: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to check in. Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red[400],
-        colorText: Colors.white,
-      );
-    }
-  }
 
   Future<void> logout() async {
     await _storageService.clearLoginData();
