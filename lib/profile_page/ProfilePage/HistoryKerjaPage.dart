@@ -22,10 +22,7 @@ class HistoryKerjaPage extends StatelessWidget {
         elevation: 2,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            // Go back to the ProfilePage
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'History Kerja',
@@ -41,103 +38,101 @@ class HistoryKerjaPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Attendance history list
-            Expanded(
-              child: Obx(() {
-                if (controller.isHistoryLoading.value) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                final attendanceHistory = controller.attendanceHistory;
-                
-                if (attendanceHistory.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.history_toggle_off, 
-                             size: 48, 
-                             color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Belum ada riwayat kehadiran',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+            Row(
+              children: [
+                const Text(
+                  'SHORT BY',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  height: 30,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.black12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: 'Semua',
+                      iconSize: 16,
+                      style: const TextStyle(fontSize: 12, color: Colors.black),
+                      items: ['Semua', 'Senin', 'Selasa']
+                          .map((item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(item),
+                      ))
+                          .toList(),
+                      onChanged: (value) {},
                     ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: attendanceHistory.length,
-                  itemBuilder: (context, index) {
-                    final attendanceRecord = attendanceHistory[index];
-                    
-                    // Check if this record is for today
-                    final bool isToday = _isAttendanceRecordToday(attendanceRecord);
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isToday ? Colors.blue : Colors.black12,
-                          width: isToday ? 2 : 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 3,
-                            offset: const Offset(0, 2),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Obx(() => controller.isHistoryLoading.value
+                ? const Center(child: CircularProgressIndicator())
+                : controller.attendanceHistory.isEmpty
+                  ? const Center(child: Text('Belum ada riwayat kerja'))
+                  : ListView.builder(
+                      itemCount: controller.attendanceHistory.length,
+                      itemBuilder: (context, index) {
+                        final record = controller.attendanceHistory[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _isAttendanceRecordToday(record) ? Colors.blue : Colors.black12,
+                              width: _isAttendanceRecordToday(record) ? 1.5 : 1,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, 
-                          vertical: 8,
-                        ),
-                        leading: CircleAvatar(
-                          backgroundColor: _getAttendanceStatusColor(attendanceRecord),
-                          child: Icon(
-                            _getAttendanceStatusIcon(attendanceRecord),
-                            color: Colors.white
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: _getAttendanceStatusColor(record),
+                                child: Icon(_getAttendanceStatusIcon(record), color: Colors.white, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _getAttendanceDayName(record),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Tanggal: ${_formatAttendanceDate(record)}',
+                                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    _buildTimeInfo(record),
+                                    _buildLateIndicator(record),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                'Shift ${record['shift'] ?? record['shift_id'] ?? '1'}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ],
                           ),
-                        ),
-                        title: Text(
-                          _getAttendanceDayName(attendanceRecord),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Tanggal: ${_formatAttendanceDate(attendanceRecord)}'),
-                            
-                            // Show check-in and check-out times
-                            _buildTimeInfo(attendanceRecord),
-                            
-                            // Show "Late" indicator if needed
-                            _buildLateIndicator(attendanceRecord),
-                          ],
-                        ),
-                        trailing: const Text(
-                          'Total 1 Shift',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              }),
+                        );
+                      },
+                    ),
+              ),
             ),
           ],
         ),

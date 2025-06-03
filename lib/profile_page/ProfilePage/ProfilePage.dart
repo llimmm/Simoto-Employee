@@ -10,137 +10,116 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get screen dimensions for responsive design
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
-    // Calculate responsive spacings
     final verticalSpacing = screenHeight * 0.025;
     final horizontalPadding = screenWidth * 0.05;
-
-    // Calculate avatar radius based on screen size
-    final avatarRadius = screenWidth * 0.125; // 12.5% of screen width
-
-    // Calculate top padding to center content
-    // Add extra top padding that's approximately 10% of the screen height
-    final topPadding = screenHeight * 0.055;
-
-    // Refresh attendance data when profile page is opened
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.refreshAttendanceData();
-    });
+    final avatarRadius = screenWidth * 0.125;
 
     return Scaffold(
       backgroundColor: const Color(0xFFEFF5E9),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            // Refresh user data and attendance data
-            await controller.loadUserData();
-            await controller.refreshAttendanceData();
-          },
-          color: const Color(0xFFAED15C),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: Column(
-                children: [
-                  // Add extra top padding to center content vertically
-                  SizedBox(height: topPadding),
-
-                  // Profile Avatar
-                  CircleAvatar(
-                    radius: avatarRadius,
-                    backgroundImage: const AssetImage('assets/profile.jpg'),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Column(
+              children: [
+                SizedBox(height: verticalSpacing),
+                CircleAvatar(
+                  radius: avatarRadius,
+                  backgroundImage: const AssetImage('assets/profile.jpg'),
+                ),
+                SizedBox(height: verticalSpacing * 0.5),
+                Obx(() => Text(
+                  controller.username.value,
+                  style: TextStyle(
+                    fontSize: screenWidth < 360 ? 18 : 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  SizedBox(height: verticalSpacing * 0.5),
-
-                  // Username
-                  Obx(() => Text(
-                        controller.username.value,
-                        style: TextStyle(
-                          fontSize: screenWidth < 360 ? 18 : 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      )),
-                  SizedBox(height: verticalSpacing * 0.8),
-
-                  // Current Month and Year
-
-                  // Info Cards - Responsive layout based on screen width
-                  screenWidth < 360
-                      ? Column(
-                          children: [
-                            _buildTotalShiftCard(
-                              width: double.infinity,
-                            ),
-                            SizedBox(height: verticalSpacing * 0.5),
-                            _buildRoleCard(
-                              width: double.infinity,
-                            ),
-                          ],
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Total Shift
-                            _buildTotalShiftCard(
-                              width: screenWidth * 0.42,
-                            ),
-                            SizedBox(width: screenWidth * 0.03),
-                            // Role
-                            _buildRoleCard(
-                              width: screenWidth * 0.42,
-                            ),
-                          ],
-                        ),
-
-                  SizedBox(height: verticalSpacing),
-
-                  // Menu Card
-                  Card(
-                    color: const Color(0xFF282828),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                  textAlign: TextAlign.center,
+                )),
+                SizedBox(height: verticalSpacing * 0.8),
+                screenWidth < 360
+                    ? Column(
+                  children: [
+                    _buildInfoCard(
+                      icon: Icons.school_outlined,
+                      title: 'total shift/bulan',
+                      value: '10',
+                      width: double.infinity,
                     ),
-                    margin: EdgeInsets.zero,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: verticalSpacing * 0.8,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildMenuItem(
-                            context: context,
-                            icon: Icons.work_outline,
-                            title: 'History Kerja',
-                            onTap: () =>
-                                controller.goToHistoryKerjaPage(context),
-                          ),
-                          _buildMenuItem(
-                            context: context,
-                            icon: Icons.calendar_today,
-                            title: 'Pengaturan Cuti',
-                            onTap: () =>
-                                controller.goToFormLaporanKerjaPage(context),
-                          ),
-                          _buildMenuItem(
-                            context: context,
-                            icon: Icons.logout,
-                            title: 'Keluar',
-                            onTap: () => _showLogoutConfirmation(context),
-                          ),
-                        ],
-                      ),
+                    SizedBox(height: verticalSpacing * 0.5),
+                    _buildInfoCard(
+                      icon: Icons.badge_outlined,
+                      title: 'Role',
+                      value: 'Karyawan',
+                      width: double.infinity,
+                    ),
+                  ],
+                )
+                    : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildInfoCard(
+                      icon: Icons.school_outlined,
+                      title: 'total shift/bulan',
+                      value: '10',
+                      width: screenWidth * 0.42,
+                    ),
+                    SizedBox(width: screenWidth * 0.03),
+                    _buildInfoCard(
+                      icon: Icons.badge_outlined,
+                      title: 'Role',
+                      value: 'Karyawan',
+                      width: screenWidth * 0.42,
+                    ),
+                  ],
+                ),
+                SizedBox(height: verticalSpacing),
+                Card(
+                  color: const Color(0xFF282828),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: verticalSpacing * 0.8,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildMenuItem(
+                          context: context,
+                          icon: Icons.work_outline,
+                          title: 'History Kerja',
+                          onTap: () => controller.goToHistoryKerjaPage(context),
+                        ),
+                        _buildMenuItem(
+                          context: context,
+                          icon: Icons.calendar_today,
+                          title: 'Pengaturan Cuti',
+                          onTap: () => controller.goToFormLaporanKerjaPage(context),
+                        ),
+                        _buildMenuItem(
+                          context: context,
+                          icon: Icons.brightness_6,
+                          title: 'Ubah Tampilan',
+                          onTap: () => Navigator.pushNamed(context, '/theme'),
+                        ),
+                        _buildMenuItem(
+                          context: context,
+                          icon: Icons.logout,
+                          title: 'Logout',
+                          onTap: () => _showLogoutConfirmation(context),
+                        ),
+                      ],
                     ),
                   ),
-                  // Add extra space at the bottom to avoid navigation bar overlap
-                  SizedBox(height: screenHeight * 0.1),
-                ],
-              ),
+                ),
+                SizedBox(height: screenHeight * 0.1),
+              ],
             ),
           ),
         ),
@@ -148,34 +127,12 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Show logout confirmation dialog
-  void _showLogoutConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Konfirmasi Keluar'),
-          content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                controller.logout(context); // Call the logout function
-              },
-              child: const Text('Keluar', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Widget for Total Shift Card - Now using dynamic data
-  Widget _buildTotalShiftCard({required double width}) {
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required double width,
+  }) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -193,8 +150,7 @@ class ProfilePage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.calendar_month_outlined,
-              color: Colors.grey[700], size: 28),
+          Icon(icon, color: Colors.grey, size: 28),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -269,7 +225,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Reusable widget for menu items
   Widget _buildMenuItem({
     required BuildContext context,
     required IconData icon,
@@ -285,6 +240,65 @@ class ProfilePage extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.white),
       onTap: onTap,
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 48),
+              const SizedBox(height: 12),
+              const Text(
+                'Yakin ingin keluar?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.check),
+                    label: const Text("Ya"),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, '/LoginController');
+                    },
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      side: const BorderSide(color: Colors.grey),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.close),
+                    label: const Text("Tidak"),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

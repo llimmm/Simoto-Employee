@@ -7,29 +7,29 @@ environment:
   sdk: ">=3.6.0 <3.29.2"
 
 dependencies:
+  flutter:
+    sdk: flutter
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.2
   flutter_svg: ^2.0.9
-  get: ^4.6.5  # Changed from ^4.6.6 to ^4.6.5 for better stability
-  mobile_scanner: ^3.5.5  # Use this instead of qr_code_scanner
+  get: ^4.6.5
   permission_handler: ^11.0.1
-  intl: ^0.19.0
+  intl: ^0.20.2
   image_picker: ^0.8.8+1
   shared_preferences: ^2.5.3
   camera: ^0.10.5+9
   google_mlkit_barcode_scanning: ^0.10.0
-
+  mobile_scanner: ^3.5.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.6  # Tambahkan baris ini
 
 flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
-
-    
+    - assets/images/org.jpg

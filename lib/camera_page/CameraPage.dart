@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../gudang_page/GudangControllers/GudangController.dart';
-import '../ReusablePage/detailPage.dart'; // Import the new detail page
+import 'package:kliktoko/gudang_page/GudangControllers/GudangController.dart';
+import 'package:kliktoko/ReusablePage/detailPage.dart'; // Import the new detail page
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
@@ -11,7 +11,6 @@ class CameraPage extends StatefulWidget {
   @override
   State<CameraPage> createState() => _CameraPageState();
 }
-
 class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   bool _isCameraPermissionGranted = false;
   bool _isFlashOn = false;
