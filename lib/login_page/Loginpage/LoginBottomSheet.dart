@@ -19,15 +19,15 @@ class LoginBottomSheet extends GetView<LoginController> {
     final verticalSpacing = screenHeight * 0.02;
 
     return Padding(
-      // Add padding to account for keyboard height
-      padding: EdgeInsets.only(bottom: keyboardHeight),
+      // Add padding to account for keyboard height and safe area
+      padding: EdgeInsets.only(bottom: keyboardHeight, top: MediaQuery.of(context).padding.top * 0.5),
       child: Material(
         color: Colors.transparent,
         child: Container(
-          // Use minimum height instead of fixed height to allow expansion
+          // Use dynamic constraints that adapt to content and keyboard
           constraints: BoxConstraints(
-            minHeight: screenHeight * 0.60,
-            maxHeight: screenHeight * 0.90, // Maximum height constraint
+            minHeight: screenHeight * 0.45,
+            maxHeight: keyboardHeight > 0 ? screenHeight * 0.85 : screenHeight * 0.70,
           ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -54,7 +54,7 @@ class LoginBottomSheet extends GetView<LoginController> {
                   horizontalPadding,
                   horizontalPadding,
                   // Add extra padding at bottom to ensure content is above keyboard
-                  horizontalPadding + (keyboardHeight > 0 ? 20 : 0)),
+                  horizontalPadding + (keyboardHeight > 0 ? keyboardHeight * 0.2 + 20 : 0)),
               child: Column(
                 mainAxisSize: MainAxisSize.min, // Use minimum size
                 children: [
@@ -193,8 +193,8 @@ class LoginBottomSheet extends GetView<LoginController> {
                   ),
                   // Add extra padding at the bottom for keyboard
                   SizedBox(
-                      height: verticalSpacing +
-                          (keyboardHeight > 0 ? keyboardHeight * 0.5 : 0)),
+                      height: verticalSpacing * 2 +
+                          (keyboardHeight > 0 ? 20 : 0)),
                 ],
               ),
             ),

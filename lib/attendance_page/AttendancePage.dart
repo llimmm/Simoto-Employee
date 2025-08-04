@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kliktoko/attendance_page/AttendanceController.dart';
+import 'package:kliktoko/camera_page/AttendanceCameraPage.dart';
 import 'package:intl/intl.dart';
 
 class AttendancePage extends StatelessWidget {
@@ -661,31 +662,77 @@ class AttendancePage extends StatelessWidget {
         );
       }
 
-      // Not checked in - show check-in button
-      return _buildButton(
-        color: const Color(0xFFAED15C),
-        onPressed: () async {
-          // Verify attendance status before attempting check-in
-          await controller.checkAttendanceStatus();
+      // Not checked in - show check-in button with options
+      return Column(
+        children: [
+          _buildButton(
+            color: const Color(0xFFAED15C),
+            onPressed: () async {
+              // Verify attendance status before attempting check-in
+              await controller.checkAttendanceStatus();
 
-          if (controller.hasCheckedIn.value) {
-            Get.snackbar(
-              'Sudah Absen',
-              'Anda sudah absen hari ini',
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: const Color(0xFFAED15C),
-              colorText: const Color(0xFF282828),
-            );
-            return;
-          }
+              if (controller.hasCheckedIn.value) {
+                Get.snackbar(
+                  'Sudah Absen',
+                  'Anda sudah absen hari ini',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: const Color(0xFFAED15C),
+                  colorText: const Color(0xFF282828),
+                );
+                return;
+              }
 
-          await controller.checkIn();
-        },
-        child: const Text('Absen Sekarang',
-            style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 18)),
+              await controller.checkIn();
+            },
+            child: const Text('Absen Sekarang',
+                style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18)),
+          ),
+          const SizedBox(height: 10),
+          _buildButton(
+            color: const Color(0xFF8BC34A),
+            onPressed: () async {
+              // Verify attendance status before attempting check-in
+              await controller.checkAttendanceStatus();
+
+              if (controller.hasCheckedIn.value) {
+                Get.snackbar(
+                  'Sudah Absen',
+                  'Anda sudah absen hari ini',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: const Color(0xFFAED15C),
+                  colorText: const Color(0xFF282828),
+                );
+                return;
+              }
+              
+              // Navigate to camera page for check-in with photo
+              final result = await Get.to(
+                () => AttendanceCameraPage(shiftId: controller.selectedShift.value),
+              );
+              
+              // Refresh attendance status if check-in was successful
+              if (result == true) {
+                await controller.checkAttendanceStatus();
+                await controller.loadAttendanceHistory();
+              }
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.camera_alt, color: Colors.black),
+                SizedBox(width: 8),
+                Text('Absen dengan Foto',
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
+              ],
+            ),
+          ),
+        ],
       );
     });
   }

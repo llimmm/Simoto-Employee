@@ -50,7 +50,9 @@ class _StartPageState extends State<StartPage>
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
     setState(() {
-      _dragValue += details.primaryDelta! / 235;
+      // Calculate drag distance based on container width
+      final dragDistance = MediaQuery.of(context).size.width * 0.8 - 60;
+      _dragValue += details.primaryDelta! / dragDistance;
       _dragValue = _dragValue.clamp(0.0, 1.0);
     });
   }
@@ -100,6 +102,8 @@ class _StartPageState extends State<StartPage>
       context: context,
       isScrollControlled: true, // Important for keyboard handling
       backgroundColor: Colors.transparent,
+           useSafeArea: true, // Use safe area to avoid notches and system UI
+      enableDrag: true, // Allow dragging to dismiss
       // Enable sheet to resize when keyboard appears
       builder: (context) => const LoginBottomSheet(),
     ).then((_) {
@@ -116,14 +120,16 @@ class _StartPageState extends State<StartPage>
       // Enable resizing to avoid bottom inset (keyboard)
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFF282828),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
           Padding(
             padding: const EdgeInsets.only(top: 35, left: 2.5),
             child: Image.asset(
               'assets/images/ssstart.png',
-              width: 3750,
+              width: MediaQuery.of(context).size.width,
               height: 400,
               fit: BoxFit.contain,
             ),
@@ -136,19 +142,19 @@ class _StartPageState extends State<StartPage>
               alignment: Alignment.centerLeft,
               child: Image.asset(
                 'assets/images/kliktokos.png',
-                width: 250,
+                width: MediaQuery.of(context).size.width * 0.6, // Responsive width
                 height: 80,
                 fit: BoxFit.contain,
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 120),
+            padding: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.15),
             child: GestureDetector(
               onHorizontalDragUpdate: _onHorizontalDragUpdate,
               onHorizontalDragEnd: _onHorizontalDragEnd,
               child: Container(
-                width: 300,
+                width: MediaQuery.of(context).size.width * 0.8,
                 height: 60,
                 decoration: BoxDecoration(
                   image: const DecorationImage(
@@ -163,7 +169,7 @@ class _StartPageState extends State<StartPage>
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOutQuart,
-                      width: 300 * _dragValue,
+                      width: MediaQuery.of(context).size.width * 0.8 * _dragValue,
                       height: 60,
                       decoration: BoxDecoration(
                         color: const Color(0xFFEEFCDE),
@@ -172,7 +178,7 @@ class _StartPageState extends State<StartPage>
                     ),
                     // Slider thumb with physical weight
                     Transform.translate(
-                      offset: Offset(5 + (_dragValue * 235), 5),
+                      offset: Offset(5 + (_dragValue * (MediaQuery.of(context).size.width * 0.8 - 60)), 5),
                       child: Container(
                         alignment: Alignment.center,
                         width: 48,
@@ -208,7 +214,10 @@ class _StartPageState extends State<StartPage>
               ),
             ),
           ),
-        ],
+          // Add bottom padding to ensure enough space
+          const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }

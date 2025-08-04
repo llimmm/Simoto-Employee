@@ -190,7 +190,7 @@ class SharedAttendanceController extends GetxController {
 
       // Perform check-in using dedicated service
       final checkInResult =
-          await _attendanceService.checkIn(selectedShift.value);
+          await _attendanceService.checkIn(shiftId: selectedShift.value);
 
       // Force updates to the observables immediately
       hasCheckedIn.value = true;
