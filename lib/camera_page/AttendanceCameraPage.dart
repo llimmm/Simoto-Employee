@@ -9,13 +9,15 @@ import '../attendance_page/SharedAttendanceController.dart';
 class AttendanceCameraPage extends StatefulWidget {
   final String shiftId;
 
-  const AttendanceCameraPage({Key? key, required this.shiftId}) : super(key: key);
+  const AttendanceCameraPage({Key? key, required this.shiftId})
+      : super(key: key);
 
   @override
   State<AttendanceCameraPage> createState() => _AttendanceCameraPageState();
 }
 
-class _AttendanceCameraPageState extends State<AttendanceCameraPage> with WidgetsBindingObserver {
+class _AttendanceCameraPageState extends State<AttendanceCameraPage>
+    with WidgetsBindingObserver {
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   bool _isCameraPermissionGranted = false;
@@ -24,7 +26,14 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
   bool _isProcessing = false;
   File? _capturedImage;
   final AttendanceApiService _attendanceService = AttendanceApiService();
-  final SharedAttendanceController _attendanceController = SharedAttendanceController.to;
+  final SharedAttendanceController _attendanceController =
+      SharedAttendanceController.to;
+
+  // Color scheme based on app theme
+  final Color primaryGreen = const Color(0xFFA9CD47);
+  final Color darkGreen = const Color(0xFF282828);
+  final Color lightGreen = const Color(0xFFF1F9E9);
+  final Color accentGreen = const Color(0xFFAED15C);
 
   @override
   void initState() {
@@ -35,8 +44,8 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Handle app lifecycle changes
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
+    if (_cameraController == null || !_cameraController!.value.isInitialized)
+      return;
 
     try {
       if (state == AppLifecycleState.resumed) {
@@ -80,7 +89,6 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
         throw Exception('No cameras available');
       }
 
-      // Use front camera for attendance
       final frontCamera = _cameras!.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => _cameras!.first,
@@ -94,9 +102,9 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
       );
 
       await _cameraController!.initialize();
-      
+
       if (!mounted) return;
-      
+
       setState(() {
         _isCameraInitialized = true;
       });
@@ -112,26 +120,27 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
 
   Future<void> _toggleFlash() async {
     try {
-      if (_cameraController == null || !_cameraController!.value.isInitialized) return;
-      
-      // Check if flash is supported
-      if (!_cameraController!.value.flashMode.index.isEqual(FlashMode.off.index) && 
-          !_cameraController!.value.flashMode.index.isEqual(FlashMode.torch.index)) {
+      if (_cameraController == null || !_cameraController!.value.isInitialized)
+        return;
+
+      if (!_cameraController!.value.flashMode.index
+              .isEqual(FlashMode.off.index) &&
+          !_cameraController!.value.flashMode.index
+              .isEqual(FlashMode.torch.index)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Flash not supported on this device')),
         );
         return;
       }
-      
+
       setState(() {
         _isFlashOn = !_isFlashOn;
       });
-      
+
       await _cameraController!.setFlashMode(
         _isFlashOn ? FlashMode.torch : FlashMode.off,
       );
     } catch (e) {
-      // Revert state if failed
       setState(() {
         _isFlashOn = !_isFlashOn;
       });
@@ -142,7 +151,9 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
   }
 
   Future<void> _takePicture() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized || _isProcessing) {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _isProcessing) {
       return;
     }
 
@@ -180,24 +191,19 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
         _isProcessing = true;
       });
 
-      // Call the API service to check in with photo
-      await _attendanceService.checkInWithPhoto(widget.shiftId, _capturedImage!);
-      
-      // Update attendance status
+      await _attendanceService.checkInWithPhoto(
+          widget.shiftId, _capturedImage!);
+
       await _attendanceController.checkAttendanceStatus();
-      
-      // Refresh attendance history
       await _attendanceController.loadAttendanceHistory();
 
-      // Return to previous screen with success result
       Get.back(result: true);
-      
-      // Show success message
+
       Get.snackbar(
         'Check-in Successful',
         'Your attendance has been recorded',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFAED15C),
+        backgroundColor: accentGreen,
         colorText: Colors.black,
       );
     } catch (e) {
@@ -232,15 +238,35 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: lightGreen,
       appBar: AppBar(
-        title: const Text('Attendance Photo'),
-        backgroundColor: const Color(0xFFAED15C),
+        title: const Text(
+          'Foto Absensi',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        backgroundColor: darkGreen,
         elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Get.back(),
+        ),
         actions: [
           if (_isCameraInitialized && _capturedImage == null)
-            IconButton(
-              icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
-              onPressed: _toggleFlash,
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: IconButton(
+                icon: Icon(
+                  _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                  color: _isFlashOn ? primaryGreen : Colors.white,
+                  size: 24,
+                ),
+                onPressed: _toggleFlash,
+              ),
             ),
         ],
       ),
@@ -254,7 +280,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
     }
 
     if (!_isCameraInitialized) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildLoadingUI();
     }
 
     if (_capturedImage != null) {
@@ -264,141 +290,500 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage> with Widget
     return _buildCameraUI();
   }
 
-  Widget _buildPermissionDeniedUI() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.no_photography, size: 80, color: Colors.grey),
-          const SizedBox(height: 20),
-          const Text(
-            'Camera permission is required',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Please grant camera permission to take attendance photo',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _requestCameraPermission,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFAED15C),
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+  Widget _buildLoadingUI() {
+    return Container(
+      color: lightGreen,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Menyiapkan Kamera...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: darkGreen,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: const Text('Grant Permission'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPermissionDeniedUI() {
+    return Container(
+      color: lightGreen,
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.camera_alt_outlined,
+                  size: 60,
+                  color: Colors.red.shade400,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Izin Kamera Diperlukan',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: darkGreen,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Untuk mengambil foto absensi, aplikasi memerlukan izin akses kamera',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _requestCameraPermission,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: const Text(
+                    'Berikan Izin',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildCameraUI() {
-    return Column(
-      children: [
-        Expanded(
-          child: Container(
+    return Container(
+      color: lightGreen,
+      child: Column(
+        children: [
+          // Header info
+          Container(
             width: double.infinity,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: CameraPreview(_cameraController!),
-            ),
-          ),
-        ),
-        Container(
-          height: 120,
-          width: double.infinity,
-          color: Colors.black,
-          child: Center(
-            child: _isProcessing
-                ? const CircularProgressIndicator(color: Color(0xFFAED15C))
-                : GestureDetector(
-                    onTap: _takePicture,
-                    child: Container(
-                      height: 70,
-                      width: 70,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        margin: const EdgeInsets.all(5),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.camera_alt,
+                      color: primaryGreen,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Shift ${widget.shiftId}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: darkGreen,
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Posisikan wajah Anda di dalam frame',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
                   ),
+                ),
+              ],
+            ),
           ),
+
+          const SizedBox(height: 12),
+
+          // Camera preview - Made larger
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  children: [
+                    CameraPreview(_cameraController!),
+                    // Camera frame overlay
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: primaryGreen.withOpacity(0.8),
+                            width: 3,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                    // Corner indicators
+                    Positioned(
+                      top: 15,
+                      left: 15,
+                      child: _buildCornerIndicator(true, true),
+                    ),
+                    Positioned(
+                      top: 15,
+                      right: 15,
+                      child: _buildCornerIndicator(true, false),
+                    ),
+                    Positioned(
+                      bottom: 15,
+                      left: 15,
+                      child: _buildCornerIndicator(false, true),
+                    ),
+                    Positioned(
+                      bottom: 15,
+                      right: 15,
+                      child: _buildCornerIndicator(false, false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Camera controls
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Spacer
+                const SizedBox(width: 50),
+
+                // Capture button
+                GestureDetector(
+                  onTap: _isProcessing ? null : _takePicture,
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _isProcessing ? Colors.grey : primaryGreen,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGreen.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: _isProcessing
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          )
+                        : const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                  ),
+                ),
+
+                // Spacer
+                const SizedBox(width: 50),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCornerIndicator(bool isTop, bool isLeft) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: primaryGreen,
+            width: 3,
+          ),
+          left: BorderSide(
+            color: primaryGreen,
+            width: 3,
+          ),
+          right: isLeft
+              ? BorderSide.none
+              : BorderSide(
+                  color: primaryGreen,
+                  width: 3,
+                ),
+          bottom: isTop
+              ? BorderSide.none
+              : BorderSide(
+                  color: primaryGreen,
+                  width: 3,
+                ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildImagePreviewUI() {
-    return Column(
-      children: [
-        Expanded(
-          child: Container(
+    return Container(
+      color: lightGreen,
+      child: Column(
+        children: [
+          // Header info
+          Container(
             width: double.infinity,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.file(
-                _capturedImage!,
-                fit: BoxFit.cover,
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ),
-        ),
-        Container(
-          height: 120,
-          width: double.infinity,
-          color: Colors.black,
-          child: _isProcessing
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFFAED15C)))
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: _retakePicture,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[800],
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                      ),
-                      child: const Text('Retake'),
+                    Icon(
+                      Icons.check_circle,
+                      color: primaryGreen,
+                      size: 20,
                     ),
-                    ElevatedButton(
-                      onPressed: _checkInWithPhoto,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFAED15C),
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Preview Foto',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: darkGreen,
                       ),
-                      child: const Text('Check In'),
                     ),
                   ],
                 ),
-        ),
-      ],
+                const SizedBox(height: 6),
+                Text(
+                  'Periksa foto Anda sebelum absen',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Image preview - Made larger
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.file(
+                  _capturedImage!,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Action buttons
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                // Retake button
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isProcessing ? null : _retakePicture,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade300,
+                      foregroundColor: darkGreen,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.refresh, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Ambil Ulang',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+
+                // Check-in button
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isProcessing ? null : _checkInWithPhoto,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: _isProcessing
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check, size: 20),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Absen',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }

@@ -83,14 +83,14 @@ class _GudangPageState extends State<GudangPage>
 
   // Local state for the filter options
   final List<String> filterOptions = [
-    'All',
-    'New Arrival',
-    'S Size',
-    'M Size',
-    'L Size',
-    'XL Size',
-    'XXL Size',
-    'XXXL Size',
+    'Semua',
+    'Baru Datang',
+    'Ukuran S',
+    'Ukuran M',
+    'Ukuran L',
+    'Ukuran XL',
+    'Ukuran XXL',
+    'Ukuran XXXL',
   ];
 
   // Green color constant
@@ -273,6 +273,7 @@ class _GudangPageState extends State<GudangPage>
         _unfocusSearchField();
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFFF1F9E9),
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: _refreshData,
@@ -313,7 +314,7 @@ class _GudangPageState extends State<GudangPage>
                         textInputAction: TextInputAction
                             .search, // Change to search to make keyboard more appropriate
                         decoration: InputDecoration(
-                          hintText: 'search',
+                          hintText: 'cari',
                           hintStyle:
                               TextStyle(color: Colors.grey[400], fontSize: 16),
                           prefixIcon: Padding(
@@ -342,21 +343,23 @@ class _GudangPageState extends State<GudangPage>
                       ),
                     ),
 
-                    // Out of stock section
+                    // Stok habis section
                     GetBuilder<GudangController>(builder: (controller) {
                       final outOfStockItems =
                           controller.getOutOfStockItemsForDisplay(3);
                       return Container(
                         padding: EdgeInsets.all(horizontalPadding),
+                        clipBehavior: Clip.hardEdge,
                         decoration: BoxDecoration(
                           color: Color(0xFF282828),
                           borderRadius: BorderRadius.circular(cardBorderRadius),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Out Of Stock',
+                              'Stok Habis',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -365,11 +368,11 @@ class _GudangPageState extends State<GudangPage>
                             ),
                             SizedBox(height: verticalPadding * 0.5),
                             SizedBox(
-                              height: screenHeight * 0.17, // Responsive height
+                              height: 100, // Fixed height since no text below
                               child: outOfStockItems.isEmpty
                                   ? Center(
                                       child: Text(
-                                        'No out of stock items',
+                                        'Tidak ada item stok habis',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
@@ -396,11 +399,11 @@ class _GudangPageState extends State<GudangPage>
                       );
                     }),
 
-                    // Category header
+                    // Kategori header
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: verticalPadding),
                       child: const Text(
-                        'Category',
+                        'Kategori',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -429,46 +432,27 @@ class _GudangPageState extends State<GudangPage>
                               return _buildDefaultCategories(screenWidth);
                             }
 
-                            return screenWidth < 360
-                                ? Wrap(
-                                    spacing: horizontalPadding,
-                                    runSpacing: verticalPadding,
-                                    alignment: WrapAlignment.spaceEvenly,
-                                    children: controller.categories
-                                        .map((category) => _buildCategoryItem(
-                                            category.name, category.getIcon()))
-                                        .toList(),
-                                  )
-                                : (controller.categories.length <= 5
-                                    // Show in a row if 5 or fewer categories
-                                    ? Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: controller.categories
-                                            .map((category) =>
-                                                _buildCategoryItem(
-                                                    category.name,
-                                                    category.getIcon()))
-                                            .toList(),
-                                      )
-                                    // Otherwise use a horizontal scrolling list
-                                    : Container(
-                                        height: 90,
-                                        child: ListView(
-                                          scrollDirection: Axis.horizontal,
-                                          physics: BouncingScrollPhysics(),
-                                          children: controller.categories
-                                              .map((category) => Padding(
-                                                    padding: EdgeInsets.only(
-                                                        right:
-                                                            horizontalPadding),
-                                                    child: _buildCategoryItem(
-                                                        category.name,
-                                                        category.getIcon()),
-                                                  ))
-                                              .toList(),
-                                        ),
-                                      ));
+                            return Container(
+                              height: 90,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: controller.categories.length,
+                                itemBuilder: (context, index) {
+                                  final category = controller.categories[index];
+                                  return Container(
+                                    margin: EdgeInsets.only(
+                                      right: index ==
+                                              controller.categories.length - 1
+                                          ? 0
+                                          : horizontalPadding,
+                                    ),
+                                    child: _buildCategoryItem(
+                                        category.name, category.getIcon()),
+                                  );
+                                },
+                              ),
+                            );
                           },
                         )),
 
@@ -520,7 +504,7 @@ class _GudangPageState extends State<GudangPage>
                           // Total items counter
                           GetBuilder<GudangController>(
                             builder: (controller) => Text(
-                              'Total : ${controller.filteredItems.length} barang',
+                              'Total: ${controller.filteredItems.length} barang',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 13,
@@ -605,7 +589,7 @@ class _GudangPageState extends State<GudangPage>
                                     ),
                                     SizedBox(height: verticalPadding),
                                     Text(
-                                      'No items found',
+                                      'Tidak ada item ditemukan',
                                       style: TextStyle(
                                         color: Colors.grey[600],
                                         fontSize: 16,
@@ -651,65 +635,58 @@ class _GudangPageState extends State<GudangPage>
 
   // Fallback categories if API fails
   Widget _buildDefaultCategories(double screenWidth) {
-    return screenWidth < 360
-        ? Wrap(
-            spacing: screenWidth * 0.04,
-            runSpacing: 10,
-            alignment: WrapAlignment.spaceEvenly,
-            children: [
-              _buildCategoryItem('T-Shirt', Icons.checkroom),
-              _buildCategoryItem('Pants', Icons.accessibility_new),
-              _buildCategoryItem('Kids', Icons.child_care),
-              _buildCategoryItem('Adults', Icons.person),
-              _buildCategoryItem('Uniform', Icons.school),
-            ],
-          )
-        : Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildCategoryItem('T-Shirt', Icons.checkroom),
-              _buildCategoryItem('Pants', Icons.accessibility_new),
-              _buildCategoryItem('Kids', Icons.child_care),
-              _buildCategoryItem('Adults', Icons.person),
-              _buildCategoryItem('Uniform', Icons.school),
-            ],
+    final defaultCategories = [
+      {'name': 'T-Shirt', 'icon': Icons.checkroom},
+      {'name': 'Pants', 'icon': Icons.accessibility_new},
+      {'name': 'Kids', 'icon': Icons.child_care},
+      {'name': 'Adults', 'icon': Icons.person},
+      {'name': 'Uniform', 'icon': Icons.school},
+    ];
+
+    return Container(
+      height: 90,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: defaultCategories.length,
+        itemBuilder: (context, index) {
+          final category = defaultCategories[index];
+          return Container(
+            margin: EdgeInsets.only(
+              right: index == defaultCategories.length - 1
+                  ? 0
+                  : screenWidth * 0.04,
+            ),
+            child: _buildCategoryItem(
+                category['name'] as String, category['icon'] as IconData),
           );
+        },
+      ),
+    );
   }
 
   Widget _buildMoreButton() {
     return Container(
       width: 35,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            height: 30,
-            width: 30,
-            margin: EdgeInsets.only(top: 43),
-            child: Container(
-              decoration: BoxDecoration(
-                color: primaryGreen,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.chevron_right,
-                  color: Colors.black,
-                  size: 25,
-                ),
+      height: 100, // Match the height of product cards
+      child: Center(
+        child: Container(
+          height: 30,
+          width: 30,
+          child: Container(
+            decoration: BoxDecoration(
+              color: primaryGreen,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(
+                Icons.chevron_right,
+                color: Colors.black,
+                size: 20,
               ),
             ),
           ),
-          SizedBox(height: 6),
-          Text(
-            'More',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -719,26 +696,50 @@ class _GudangPageState extends State<GudangPage>
       onTap: () => _navigateToProductDetail(item),
       child: Container(
         width: 100,
-        margin: EdgeInsets.only(right: 10),
+        margin: const EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 100,
-              width: 100,
-              margin: EdgeInsets.only(top: 10),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: primaryGreen,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: item.image != null && item.image!.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
+            // Image section
+            Expanded(
+              flex: 3,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      primaryGreen.withOpacity(0.8),
+                      primaryGreen.withOpacity(0.6),
+                    ],
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Product image
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
+                      child: item.image != null && item.image!.isNotEmpty
+                          ? Image.network(
                               item.image!,
                               fit: BoxFit.cover,
                               width: double.infinity,
@@ -762,79 +763,171 @@ class _GudangPageState extends State<GudangPage>
                               errorBuilder: (context, error, stackTrace) {
                                 print('Error loading image: $error');
                                 return Container(
-                                  color: primaryGreen,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        primaryGreen.withOpacity(0.8),
+                                        primaryGreen.withOpacity(0.6),
+                                      ],
+                                    ),
+                                  ),
                                   child: Center(
                                     child: Icon(
                                       Icons.checkroom,
-                                      size: 40,
+                                      size: 24,
                                       color: Colors.white,
                                     ),
                                   ),
                                 );
                               },
+                            )
+                          : Center(
+                              child: Icon(
+                                Icons.checkroom,
+                                size: 24,
+                                color: Colors.white,
+                              ),
                             ),
-                          )
-                        : Center(
-                            child: Icon(
-                              Icons.checkroom,
-                              size: 40,
-                              color: Colors.white,
-                            ),
-                          ),
-                  ),
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.black.withOpacity(0.7),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'SOLD OUT',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
                     ),
-                  ),
-                  if (item.code != null)
-                    Positioned(
-                      top: 5,
-                      left: 5,
+
+                    // Overlay stok habis
+                    Positioned.fill(
                       child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.8),
+                              Colors.black.withOpacity(0.6),
+                            ],
+                          ),
                         ),
-                        child: Text(
-                          item.code!,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w500,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.block,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'HABIS',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 8,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                ],
+
+                    // Size badge
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.95),
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          item.size ?? 'N/A',
+                          style: TextStyle(
+                            color: Colors.grey.shade800,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Code badge
+                    if (item.code != null)
+                      Positioned(
+                        top: 4,
+                        left: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 3, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 2,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            item.code!,
+                            style: TextStyle(
+                              color: Colors.grey.shade800,
+                              fontSize: 7,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
-            SizedBox(height: 6),
-            Text(
-              '${item.name} / ${item.size}',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
+
+            // Info section
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: TextStyle(
+                        color: const Color(0xFF282828),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        height: 1.1,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      NumberFormat('#,###', 'id_ID').format(item.price),
+                      style: TextStyle(
+                        color: primaryGreen,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
             ),
-            // Harga tidak ditampilkan untuk produk yang kehabisan stok
           ],
         ),
       ),
@@ -852,9 +945,9 @@ class _GudangPageState extends State<GudangPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Color(0xFF181C1D),
+              color: const Color(0xFF181C1D),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -863,10 +956,10 @@ class _GudangPageState extends State<GudangPage>
               size: 24,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.black,
               fontSize: 12,
             ),
@@ -885,23 +978,45 @@ class _GudangPageState extends State<GudangPage>
       onTap: () => _navigateToProductDetail(item),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+              spreadRadius: 0,
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
+              flex: 3,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: Colors.grey[200],
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.grey.shade100,
+                          Colors.grey.shade200,
+                        ],
+                      ),
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
                       child: item.image != null && item.image!.isNotEmpty
                           ? Image.network(
                               item.image!,
@@ -927,7 +1042,16 @@ class _GudangPageState extends State<GudangPage>
                               errorBuilder: (context, error, stackTrace) {
                                 print('Error loading image: $error');
                                 return Container(
-                                  color: primaryGreen.withOpacity(0.7),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        primaryGreen.withOpacity(0.8),
+                                        primaryGreen.withOpacity(0.6),
+                                      ],
+                                    ),
+                                  ),
                                   child: Center(
                                     child: Icon(
                                       Icons.checkroom,
@@ -938,106 +1062,171 @@ class _GudangPageState extends State<GudangPage>
                                 );
                               },
                             )
-                          : Image.asset(
-                              'assets/images/clothes.jpg',
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: primaryGreen.withOpacity(0.7),
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.checkroom,
-                                      size: 40,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                );
-                              },
+                          : Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    primaryGreen.withOpacity(0.8),
+                                    primaryGreen.withOpacity(0.6),
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.checkroom,
+                                  size: 40,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                     ),
                   ),
+
+                  // Overlay untuk stok habis
                   if (isOutOfStock)
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.8),
+                              Colors.black.withOpacity(0.6),
+                            ],
+                          ),
                         ),
                         child: Center(
-                          child: Text(
-                            'SOLD OUT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.block,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'STOK HABIS',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  if (!isOutOfStock && item.stock > 0)
+
+                  // Badge stok rendah
+                  if (!isOutOfStock && item.stock > 0 && item.stock <= 5)
                     Positioned(
                       top: 8,
                       right: 8,
                       child: Container(
-                        width: 24,
-                        height: 24,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${item.stock}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade600,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (isNew)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Color(0xFF181C1D),
-                          borderRadius: BorderRadius.circular(4),
+                          ],
                         ),
                         child: Text(
-                          'NEW',
-                          style: TextStyle(
+                          '${item.stock}',
+                          style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ),
+
+                  // Badge baru
+                  if (isNew)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFF181C1D),
+                              const Color(0xFF2C3E50),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'BARU',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // Code badge
                   if (item.code != null)
                     Positioned(
                       bottom: 8,
                       left: 8,
                       child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(4),
+                          color: Colors.white.withOpacity(0.95),
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Text(
                           item.code!,
                           style: TextStyle(
-                            color: Colors.black,
+                            color: Colors.grey.shade800,
                             fontSize: 9,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1045,25 +1234,76 @@ class _GudangPageState extends State<GudangPage>
                 ],
               ),
             ),
-            SizedBox(height: 6),
-            Text(
-              '${item.name} / ${item.size}',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
+
+            // Content section
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Product name and size
+                    Text(
+                      item.name,
+                      style: TextStyle(
+                        color: const Color(0xFF282828),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Size badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: primaryGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: primaryGreen.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'Size: ${item.size}',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // Price
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.attach_money,
+                          color: primaryGreen,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          NumberFormat('#,###', 'id_ID').format(item.price),
+                          style: TextStyle(
+                            color: primaryGreen,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 2),
-            Text(
-              'Rp ${NumberFormat('#,###', 'id_ID').format(item.price)}',
-              style: TextStyle(
-                color: Color(0xFFA9CD47),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            )
           ],
         ),
       ),

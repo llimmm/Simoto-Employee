@@ -167,6 +167,8 @@ class HomeController extends GetxController {
 
       // Make sure to update attendance data
       try {
+        // Load shift data from API first
+        await attendanceController.loadShiftList();
         attendanceController.determineShift();
         attendanceController.checkAttendanceStatus();
       } catch (e) {
@@ -231,12 +233,35 @@ class HomeController extends GetxController {
     return outOfStockProducts.take(limit).toList();
   }
 
+  // Get shift time based on current shift
   String getShiftTime(String shift) {
     try {
-      return attendanceController.getShiftTime(shift);
-    } catch (e) {
-      print('Error getting shift time: $e');
-      // Default shift times if controller fails
+      // Try to get shift data from SharedAttendanceController first
+      if (attendanceController.shiftMap.value.isNotEmpty) {
+        final shiftId = int.tryParse(shift);
+        if (shiftId != null &&
+            attendanceController.shiftMap.value.containsKey(shiftId)) {
+          final shiftData = attendanceController.shiftMap.value[shiftId]!;
+
+          // Use check_in_time and check_out_time from API if available
+          if (shiftData.checkInTime != null &&
+              shiftData.checkInTime!.isNotEmpty &&
+              shiftData.checkOutTime != null &&
+              shiftData.checkOutTime!.isNotEmpty) {
+            return '${shiftData.checkInTime} - ${shiftData.checkOutTime}';
+          }
+
+          // Fallback to start_time and end_time if check_in/out_time not available
+          if (shiftData.startTime != null &&
+              shiftData.startTime!.isNotEmpty &&
+              shiftData.endTime != null &&
+              shiftData.endTime!.isNotEmpty) {
+            return '${shiftData.startTime} - ${shiftData.endTime}';
+          }
+        }
+      }
+
+      // If no API data available, use hardcoded times as fallback
       final now = DateTime.now();
       final currentTime = now.hour * 60 + now.minute; // Convert to minutes
 
@@ -254,22 +279,53 @@ class HomeController extends GetxController {
         default:
           return '07:30 - 14:30';
       }
+    } catch (e) {
+      print('Error getting shift time: $e');
+      // Return fallback time
+      return '07:30 - 14:30';
     }
   }
 
   // Get status message based on current attendance state
   String getStatusMessage() {
-    if (!hasCheckedIn.value) {
-      if (isOutsideShiftHours.value) {
-        return 'Diluar Jam Kerja';
+    try {
+      // Check if we have shift status from API
+      final shiftStatus = attendanceController.shiftStatus.value;
+
+      // If shift status is active, show appropriate message
+      if (shiftStatus.isActive) {
+        if (!hasCheckedIn.value) {
+          return 'Anda Belum Absen';
+        } else if (isLate.value) {
+          return 'Anda Terlambat';
+        } else if (hasCheckedOut.value) {
+          return 'Anda Sudah Check-out';
+        } else {
+          return 'Anda Sudah Absen';
+        }
+      } else {
+        // If shift is not active, show message from API or default
+        if (shiftStatus.message.isNotEmpty) {
+          return shiftStatus.message;
+        } else {
+          return 'Tidak Ada Shift Saat Ini';
+        }
       }
-      return 'Anda Belum Absen';
-    } else if (isLate.value) {
-      return 'Anda Terlambat';
-    } else if (hasCheckedOut.value) {
-      return 'Anda Sudah Check-out';
-    } else {
-      return 'Anda Sudah Absen';
+    } catch (e) {
+      print('Error getting status message: $e');
+      // Fallback to original logic
+      if (!hasCheckedIn.value) {
+        if (isOutsideShiftHours.value) {
+          return 'Tidak Ada Shift Saat Ini';
+        }
+        return 'Anda Belum Absen';
+      } else if (isLate.value) {
+        return 'Anda Terlambat';
+      } else if (hasCheckedOut.value) {
+        return 'Anda Sudah Check-out';
+      } else {
+        return 'Anda Sudah Absen';
+      }
     }
   }
 
@@ -277,7 +333,7 @@ class HomeController extends GetxController {
   Color getStatusColor() {
     if (!hasCheckedIn.value) {
       if (isOutsideShiftHours.value) {
-        return Colors.indigo.shade700;
+        return Colors.grey.shade700;
       }
       return Colors.red.shade700;
     } else if (isLate.value) {
@@ -405,7 +461,32 @@ class HomeController extends GetxController {
   }
 
   Future<void> logout() async {
-    await _storageService.clearLoginData();
-    Get.offAllNamed('/login');
+    try {
+      await _storageService.clearLoginData();
+      Get.offAllNamed('/start');
+
+      // Show success message using Get.snackbar
+      Get.snackbar(
+        'Logout Berhasil',
+        'Anda telah berhasil keluar dari aplikasi',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFAED15C),
+        colorText: const Color(0xFF282828),
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      print('Error during logout: $e');
+      Get.offAllNamed('/start');
+
+      // Show error message using Get.snackbar
+      Get.snackbar(
+        'Error',
+        'Terjadi kesalahan saat logout',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[400],
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 }

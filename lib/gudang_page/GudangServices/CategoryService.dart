@@ -5,7 +5,7 @@ import 'package:kliktoko/gudang_page/GudangModel/ProductModel.dart';
 import 'package:kliktoko/storage/storage_service.dart';
 
 class CategoryService {
-  static const String baseUrl = 'https://kliktoko.rplrus.com';
+  static const String baseUrl = 'https://adminkliktoko.my.id';
   
   // Singleton pattern
   static final CategoryService _instance = CategoryService._internal();

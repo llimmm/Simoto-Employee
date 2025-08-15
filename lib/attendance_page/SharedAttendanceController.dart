@@ -50,7 +50,7 @@ class SharedAttendanceController extends GetxController {
   final AttendanceApiService _attendanceService = AttendanceApiService();
 
   // API service base URL - matches the one in ApiService.dart
-  static const String baseUrl = 'https://kliktoko.rplrus.com';
+  static const String baseUrl = 'https://adminkliktoko.my.id';
 
   // Ensure controller is registered
   static void ensureInitialized() {
@@ -127,6 +127,7 @@ class SharedAttendanceController extends GetxController {
       );
 
       print('📊 Status shift response: ${response.statusCode}');
+      print('📋 Raw response: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonData = json.decode(response.body);
@@ -134,15 +135,17 @@ class SharedAttendanceController extends GetxController {
         shiftStatus.value = status;
 
         // Update observable values based on shift status
-        hasCheckedIn.value = status.isActive;
+        hasCheckedIn.value = status.data?.checkIn != null;
         hasCheckedOut.value = status.data?.checkOut != null;
         isLate.value = status.data?.isLate ?? false;
 
-        if (status.isActive && status.data != null) {
+        if (status.data != null) {
           selectedShift.value = status.data!.shiftNumber.toString();
           print('👉 Shift diperbarui ke: ${selectedShift.value}');
         }
 
+        // Tampilkan pesan status
+        print('📢 Status message: ${status.message}');
         print(
             '✅ Pemeriksaan status selesai: Aktif = ${status.isActive}, Terlambat = ${status.data?.isLate ?? false}');
       } else {
@@ -273,6 +276,182 @@ class SharedAttendanceController extends GetxController {
     }
   }
 
+  // Method to show check-out confirmation dialog
+  Future<void> showCheckOutConfirmation() async {
+    // Check current status first
+    if (!hasCheckedIn.value) {
+      Get.snackbar(
+        'Tidak Dapat Check-out',
+        'Anda belum melakukan check-in hari ini.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[400],
+        colorText: Colors.white,
+        duration: Duration(seconds: 3),
+      );
+      return;
+    }
+
+    if (hasCheckedOut.value) {
+      Get.snackbar(
+        'Sudah Check-out',
+        'Anda sudah melakukan check-out hari ini.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange[400],
+        colorText: Colors.white,
+        duration: Duration(seconds: 3),
+      );
+      return;
+    }
+
+    // Show simple confirmation dialog with animation
+    final result = await Get.dialog(
+      AnimatedContainer(
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon with animation
+                AnimatedContainer(
+                  duration: Duration(milliseconds: 500),
+                  child: Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.logout,
+                      color: Colors.red[600],
+                      size: 32,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+
+                // Title
+                Text(
+                  'Check-out',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                SizedBox(height: 8),
+
+                // Message
+                Text(
+                  'Apakah Anda yakin ingin melakukan check-out?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 24),
+
+                // Buttons
+                Row(
+                  children: [
+                    // Cancel button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Get.back(result: false),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Batal',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+
+                    // Check-out button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Get.back(result: true),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.red[600],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Check-out',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: true,
+      transitionDuration: Duration(milliseconds: 300),
+      transitionCurve: Curves.easeInOut,
+    );
+
+    // If user confirmed, proceed with check-out
+    if (result == true) {
+      try {
+        await checkOut();
+
+        // Show success message
+        Get.snackbar(
+          'Check-out Berhasil',
+          'Anda telah berhasil melakukan check-out hari ini.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green[400],
+          colorText: Colors.white,
+          duration: Duration(seconds: 3),
+          icon: Icon(
+            Icons.check_circle,
+            color: Colors.white,
+          ),
+        );
+      } catch (e) {
+        // Error handling is already done in checkOut method
+        print('❌ Check-out failed after confirmation: $e');
+      }
+    }
+  }
+
   // Flag to prevent recursive calls in loadAttendanceHistory
   bool _isLoadingAttendanceHistory = false;
 
@@ -298,9 +477,9 @@ class SharedAttendanceController extends GetxController {
 
       final headers = await _getHeaders(token);
 
-      // Fetch attendance history
+      // Fetch attendance history from new API
       final response = await http.get(
-        Uri.parse('$baseUrl/api/attendance/history'),
+        Uri.parse('$baseUrl/api/shifts/history'),
         headers: headers,
       );
 
@@ -309,64 +488,59 @@ class SharedAttendanceController extends GetxController {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonData = json.decode(response.body);
+        print('📋 Attendance history data: $jsonData');
 
-        List<dynamic> historyData = [];
+        if (jsonData is Map && jsonData.containsKey('data')) {
+          final historyData = jsonData['data'];
 
-        // Handle different API response structures
-        if (jsonData is List) {
-          historyData = jsonData;
-        } else if (jsonData is Map &&
-            jsonData.containsKey('data') &&
-            jsonData['data'] is List) {
-          historyData = jsonData['data'];
-        } else if (jsonData is Map &&
-            jsonData.containsKey('history') &&
-            jsonData['history'] is List) {
-          historyData = jsonData['history'];
+          if (historyData is Map && historyData.containsKey('history')) {
+            final historyList = historyData['history'] as List<dynamic>;
+
+            // Convert to list of maps and sort by date (most recent first)
+            final historyMaps = historyList
+                .map((item) => item as Map<String, dynamic>)
+                .toList();
+
+            // Sort by date (most recent first)
+            historyMaps.sort((a, b) {
+              String dateA = a['tanggal'] ?? '';
+              String dateB = b['tanggal'] ?? '';
+
+              // Parse dates for comparison
+              DateTime? parsedDateA;
+              DateTime? parsedDateB;
+
+              try {
+                parsedDateA = DateTime.parse(dateA);
+              } catch (e) {
+                print('Error parsing date A: $e');
+              }
+
+              try {
+                parsedDateB = DateTime.parse(dateB);
+              } catch (e) {
+                print('Error parsing date B: $e');
+              }
+
+              // If both dates parsed successfully, compare them
+              if (parsedDateA != null && parsedDateB != null) {
+                return parsedDateB.compareTo(parsedDateA); // Descending order
+              }
+
+              // Fallback to string comparison if parsing failed
+              return dateB.compareTo(dateA);
+            });
+
+            attendanceHistory.value = historyMaps;
+            print('✅ Loaded ${historyMaps.length} attendance history records');
+          } else {
+            print('❌ Invalid history data format');
+            attendanceHistory.value = [];
+          }
+        } else {
+          print('❌ Invalid response format');
+          attendanceHistory.value = [];
         }
-
-        // Convert to list of maps and sort by date (most recent first)
-        final historyList =
-            historyData.map((item) => item as Map<String, dynamic>).toList();
-
-        // Sort by date (most recent first)
-        historyList.sort((a, b) {
-          String dateA = a['date'] ??
-              a['attendance_date'] ??
-              a['created_at']?.toString() ??
-              '';
-          String dateB = b['date'] ??
-              b['attendance_date'] ??
-              b['created_at']?.toString() ??
-              '';
-
-          // Parse dates for comparison
-          DateTime? parsedDateA;
-          DateTime? parsedDateB;
-
-          try {
-            parsedDateA = DateTime.parse(dateA);
-          } catch (e) {
-            print('Error parsing date A: $e');
-          }
-
-          try {
-            parsedDateB = DateTime.parse(dateB);
-          } catch (e) {
-            print('Error parsing date B: $e');
-          }
-
-          // If both dates parsed successfully, compare them
-          if (parsedDateA != null && parsedDateB != null) {
-            return parsedDateB.compareTo(parsedDateA); // Descending order
-          }
-
-          // Fallback to string comparison if parsing failed
-          return dateB.compareTo(dateA);
-        });
-
-        attendanceHistory.value = historyList;
-        print('✅ Loaded ${historyList.length} attendance history records');
       } else {
         print('❌ Failed to load attendance history: ${response.statusCode}');
         attendanceHistory.value = [];
@@ -644,48 +818,85 @@ class SharedAttendanceController extends GetxController {
 
       print(
           '⏰ Waktu saat ini: ${now.hour}:${now.minute}:${now.second} (${currentTime} menit)');
+      print('📊 Total shift yang tersedia: ${shiftList.length}');
+      print('📋 Daftar shift yang dimuat:');
+      for (var shift in shiftList) {
+        print('   - Shift ${shift.id}: ${shift.name}');
+      }
 
       // Cek setiap shift dari data server
       bool foundActiveShift = false;
       for (final shift in shiftList) {
-        print(
-            '🔍 Memeriksa shift ${shift.id}: ${shift.name} (${shift.startTime} - ${shift.endTime})');
+        print('🔍 Memeriksa shift ${shift.id}: ${shift.name}');
+        print('   - startTime: ${shift.startTime}');
+        print('   - endTime: ${shift.endTime}');
+        print('   - checkInTime: ${shift.checkInTime}');
+        print('   - checkOutTime: ${shift.checkOutTime}');
 
-        // Gunakan metode isCurrentTimeInShift yang sudah ditingkatkan
-        if (shift.isCurrentTimeInShift()) {
+        // Debug: cek apakah shift memiliki data check-in/out yang valid
+        if (shift.checkInTime == null ||
+            shift.checkInTime!.isEmpty ||
+            shift.checkOutTime == null ||
+            shift.checkOutTime!.isEmpty) {
+          print(
+              '   ⚠️ Shift ${shift.id} tidak memiliki checkInTime/checkOutTime yang valid');
+        } else {
+          print(
+              '   ✅ Shift ${shift.id} memiliki checkInTime/checkOutTime yang valid');
+        }
+
+        // Gunakan metode isCurrentTimeInShift yang lebih akurat
+        final isShiftActive = shift.isCurrentTimeInShift();
+        print('🔍 Hasil pengecekan shift ${shift.id}: $isShiftActive');
+
+        if (isShiftActive) {
           print('✅ Shift aktif ditemukan: ${shift.name} (ID: ${shift.id})');
           selectedShift.value = shift.id.toString();
           isOutsideShiftHours.value = false;
           foundActiveShift = true;
 
           // Log informasi tambahan untuk shift yang melewati tengah malam
-          final startParts = shift.startTime.split(':');
-          final endParts = shift.endTime.split(':');
+          final checkInParts = shift.checkInTime?.split(':');
+          final checkOutParts = shift.checkOutTime?.split(':');
 
-          if (startParts.length >= 2 && endParts.length >= 2) {
+          if (checkInParts != null &&
+              checkInParts.length >= 2 &&
+              checkOutParts != null &&
+              checkOutParts.length >= 2) {
             final startMinutes =
-                int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+                int.parse(checkInParts[0]) * 60 + int.parse(checkInParts[1]);
             final endMinutes =
-                int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+                int.parse(checkOutParts[0]) * 60 + int.parse(checkOutParts[1]);
 
             if (endMinutes < startMinutes) {
               print(
-                  '🌙 Shift ${shift.id} melewati tengah malam: ${shift.startTime} - ${shift.endTime}');
+                  '🌙 Shift ${shift.id} melewati tengah malam: ${shift.checkInTime} - ${shift.checkOutTime}');
               print(
                   '🕒 Waktu saat ini (${currentTime} menit) berada dalam rentang shift yang melewati tengah malam');
             }
           }
 
           return;
+        } else {
+          print('❌ Shift ${shift.id} tidak aktif');
         }
       }
 
-      // Jika tidak ada shift aktif, gunakan penentuan berbasis waktu lokal
+      // Jika tidak ada shift aktif, set status dan tampilkan pesan
       if (!foundActiveShift) {
-        print(
-            '⚠️ Tidak ada shift aktif ditemukan, menggunakan penentuan berbasis waktu');
-        if (!_isShiftTimerRunning) {
-          determineShift();
+        print('⚠️ Tidak ada shift aktif ditemukan');
+        isOutsideShiftHours.value = true;
+
+        // Tampilkan pesan yang sesuai berdasarkan waktu
+        final currentHour = now.hour;
+        if (currentHour >= 6 && currentHour < 14) {
+          print(
+              '📢 Pesan: Tidak ada shift saat ini (Shift Pagi: 06:30 - 14:30)');
+        } else if (currentHour >= 19 && currentHour < 22) {
+          print(
+              '📢 Pesan: Tidak ada shift saat ini (Shift Siang: 19:30 - 22:20)');
+        } else {
+          print('📢 Pesan: Tidak ada shift saat ini');
         }
       }
     } finally {
@@ -757,8 +968,12 @@ class SharedAttendanceController extends GetxController {
 
         // Log detail setiap shift untuk debugging
         for (var shift in shifts) {
-          print(
-              '📋 Shift ${shift.id}: ${shift.name}, Waktu: ${shift.startTime} - ${shift.endTime}');
+          print('📋 Shift ${shift.id}: ${shift.name}');
+          print('   - startTime: ${shift.startTime}');
+          print('   - endTime: ${shift.endTime}');
+          print('   - checkInTime: ${shift.checkInTime}');
+          print('   - checkOutTime: ${shift.checkOutTime}');
+          print('   - lateTolerance: ${shift.lateTolerance}');
 
           // Tambahkan pengecekan khusus untuk shift yang melewati tengah malam
           final startParts = shift.startTime.split(':');
@@ -787,6 +1002,15 @@ class SharedAttendanceController extends GetxController {
         shiftMap.value = map;
 
         print('✅ Loaded ${shifts.length} shifts from API');
+
+        // Log detail setiap shift untuk debugging
+        for (var shift in shifts) {
+          print('📋 Shift ${shift.id}: ${shift.name}');
+          print('   - checkInTime: ${shift.checkInTime}');
+          print('   - checkOutTime: ${shift.checkOutTime}');
+          print('   - startTime: ${shift.startTime}');
+          print('   - endTime: ${shift.endTime}');
+        }
 
         // Segera tentukan shift berdasarkan data server yang baru
         // Cek apakah determineShiftFromServer sedang berjalan
@@ -817,17 +1041,12 @@ class SharedAttendanceController extends GetxController {
     print('⚙️ Mengatur shift default dengan perubahan terbaru');
     shiftList.value = [
       ShiftModel(
-          id: 1,
-          name: 'Shift 1',
-          startTime: '07:30:00',
-          endTime: '14:30:00',
-          description: 'Morning shift'),
+          id: 1, name: 'Shift 1', startTime: '07:30:00', endTime: '14:30:00'),
       ShiftModel(
           id: 2,
           name: 'Shift 2',
           startTime: '14:30:00',
-          endTime: '03:30:00', // Diperbarui sesuai perubahan di web admin
-          description: 'Afternoon shift'),
+          endTime: '03:30:00'), // Diperbarui sesuai perubahan di web admin
     ];
 
     // Log detail shift default untuk debugging

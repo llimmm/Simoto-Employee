@@ -20,14 +20,17 @@ class LoginBottomSheet extends GetView<LoginController> {
 
     return Padding(
       // Add padding to account for keyboard height and safe area
-      padding: EdgeInsets.only(bottom: keyboardHeight, top: MediaQuery.of(context).padding.top * 0.5),
+      padding: EdgeInsets.only(
+          bottom: keyboardHeight,
+          top: MediaQuery.of(context).padding.top * 0.5),
       child: Material(
         color: Colors.transparent,
         child: Container(
           // Use dynamic constraints that adapt to content and keyboard
           constraints: BoxConstraints(
             minHeight: screenHeight * 0.45,
-            maxHeight: keyboardHeight > 0 ? screenHeight * 0.85 : screenHeight * 0.70,
+            maxHeight:
+                keyboardHeight > 0 ? screenHeight * 0.85 : screenHeight * 0.70,
           ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -54,7 +57,8 @@ class LoginBottomSheet extends GetView<LoginController> {
                   horizontalPadding,
                   horizontalPadding,
                   // Add extra padding at bottom to ensure content is above keyboard
-                  horizontalPadding + (keyboardHeight > 0 ? keyboardHeight * 0.2 + 20 : 0)),
+                  horizontalPadding +
+                      (keyboardHeight > 0 ? keyboardHeight * 0.2 + 20 : 0)),
               child: Column(
                 mainAxisSize: MainAxisSize.min, // Use minimum size
                 children: [
@@ -145,7 +149,8 @@ class LoginBottomSheet extends GetView<LoginController> {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+                              Icon(Icons.error_outline,
+                                  color: Colors.red.shade700, size: 18),
                               SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -193,8 +198,8 @@ class LoginBottomSheet extends GetView<LoginController> {
                   ),
                   // Add extra padding at the bottom for keyboard
                   SizedBox(
-                      height: verticalSpacing * 2 +
-                          (keyboardHeight > 0 ? 20 : 0)),
+                      height:
+                          verticalSpacing * 2 + (keyboardHeight > 0 ? 20 : 0)),
                 ],
               ),
             ),

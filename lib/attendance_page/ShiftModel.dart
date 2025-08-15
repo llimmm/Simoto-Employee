@@ -3,7 +3,6 @@ class ShiftModel {
   final String name;
   final String startTime;
   final String endTime;
-  final String? description;
   final int lateTolerance;
   final dynamic lateThreshold;
   final String? salaryPerShift;
@@ -15,7 +14,6 @@ class ShiftModel {
     required this.name,
     required this.startTime,
     required this.endTime,
-    this.description,
     this.lateTolerance = 15,
     this.lateThreshold,
     this.salaryPerShift,
@@ -24,86 +22,138 @@ class ShiftModel {
   });
 
   factory ShiftModel.fromJson(Map<String, dynamic> json) {
-    // Tambahkan log untuk debugging
     print('📊 Parsing shift from JSON: ${json.keys.join(', ')}');
+    print('📋 Raw JSON data: $json');
+
+    // Debug khusus untuk check_in_time dan check_out_time
+    print('🔍 Debug check_in_time:');
+    print('   - Key exists: ${json.containsKey('check_in_time')}');
+    print('   - Value: ${json['check_in_time']}');
+    print('   - Type: ${json['check_in_time']?.runtimeType}');
+
+    print('🔍 Debug check_out_time:');
+    print('   - Key exists: ${json.containsKey('check_out_time')}');
+    print('   - Value: ${json['check_out_time']}');
+    print('   - Type: ${json['check_out_time']?.runtimeType}');
+
+    // Parse check_in_time dan check_out_time dengan aman
+    String? checkInTime;
+    String? checkOutTime;
+
+    try {
+      checkInTime = json['check_in_time']?.toString();
+      checkOutTime = json['check_out_time']?.toString();
+
+      print('✅ Parsed checkInTime: $checkInTime');
+      print('✅ Parsed checkOutTime: $checkOutTime');
+    } catch (e) {
+      print('⚠️ Error parsing check_in_time/check_out_time: $e');
+      checkInTime = null;
+      checkOutTime = null;
+    }
+
+    // Parse start_time dan end_time dengan aman
+    String startTime = '';
+    String endTime = '';
+
+    try {
+      startTime = json['start_time']?.toString() ?? '';
+      endTime = json['end_time']?.toString() ?? '';
+    } catch (e) {
+      print('⚠️ Error parsing start_time/end_time: $e');
+      startTime = '';
+      endTime = '';
+    }
 
     return ShiftModel(
       id: json['id'] is int
           ? json['id']
           : int.tryParse(json['id'].toString()) ?? 0,
       name: json['name']?.toString() ?? '',
-      startTime: json['start_time']?.toString() ?? '',
-      endTime: json['end_time']?.toString() ?? '',
-      description: json['description']?.toString(),
+      startTime: startTime,
+      endTime: endTime,
       lateTolerance: json['late_tolerance'] is int
           ? json['late_tolerance']
           : int.tryParse(json['late_tolerance'].toString()) ?? 15,
       lateThreshold: json['late_threshold'],
       salaryPerShift: json['salary_per_shift']?.toString(),
-      checkInTime: json['check_in_time']?.toString(),
-      checkOutTime: json['check_out_time']?.toString(),
+      checkInTime: checkInTime,
+      checkOutTime: checkOutTime,
     );
   }
 
-  // Method untuk format jam shift untuk display
-  String getFormattedTimeRange() {
-    // Gunakan checkInTime dan checkOutTime jika tersedia
-    if (checkInTime != null &&
-        checkInTime!.isNotEmpty &&
-        checkOutTime != null &&
-        checkOutTime!.isNotEmpty) {
-      String formattedStart = _formatTime(checkInTime!);
-      String formattedEnd = _formatTime(checkOutTime!);
-      return '$formattedStart - $formattedEnd';
+  // Method untuk mengecek apakah waktu saat ini berada dalam rentang shift
+  bool isCurrentTimeInShift() {
+    final now = DateTime.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    // Validasi data check-in/out time
+    if (checkInTime == null ||
+        checkInTime!.isEmpty ||
+        checkOutTime == null ||
+        checkOutTime!.isEmpty) {
+      print('⚠️ Shift $id: checkInTime atau checkOutTime tidak tersedia');
+      print('   - checkInTime: $checkInTime');
+      print('   - checkOutTime: $checkOutTime');
+      return false;
     }
 
-    // Fallback ke startTime dan endTime jika checkInTime/checkOutTime tidak tersedia
-    String formattedStart = _formatTime(startTime);
-    String formattedEnd = _formatTime(endTime);
-    return '$formattedStart - $formattedEnd';
-  }
+    // Parse waktu check-in dan check-out
+    final startMinutes = _parseTimeToMinutes(checkInTime!);
+    final endMinutes = _parseTimeToMinutes(checkOutTime!);
 
-  String _formatTime(String time) {
-    if (time.isEmpty) return '';
-
-    try {
-      // Cek apakah format ISO (2025-07-25T00:30:00.000000Z)
-      if (time.contains('T') && time.contains('-')) {
-        final dateTime = DateTime.parse(time);
-        return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-      }
-
-      // Jika format sudah HH:mm, return as is
-      if (time.length == 5) return time;
-
-      // Jika format HH:mm:ss, ambil HH:mm saja
-      if (time.length >= 5) {
-        return time.substring(0, 5);
-      }
-
-      return time;
-    } catch (e) {
-      print('⚠️ Error formatting time: $e');
-      return '';
+    if (startMinutes == 0 && endMinutes == 0) {
+      print('⚠️ Shift $id: Format waktu tidak valid');
+      print('   - checkInTime: $checkInTime');
+      print('   - checkOutTime: $checkOutTime');
+      return false;
     }
+
+    print('🔍 Shift $id ($name):');
+    print(
+        '   - Waktu saat ini: ${now.hour}:${now.minute}:${now.second} ($currentMinutes menit)');
+    print('   - Check-in time: $checkInTime ($startMinutes menit)');
+    print('   - Check-out time: $checkOutTime ($endMinutes menit)');
+
+    // Handle shift yang melewati tengah malam
+    if (endMinutes < startMinutes) {
+      // Shift melewati tengah malam (contoh: 22:00 - 06:00)
+      final isInShift =
+          currentMinutes >= startMinutes || currentMinutes < endMinutes;
+      print(
+          '🌙 Shift $id melewati tengah malam: ${isInShift ? "AKTIF" : "tidak aktif"}');
+      print(
+          '   - Kondisi: $currentMinutes >= $startMinutes || $currentMinutes < $endMinutes');
+      return isInShift;
+    }
+
+    // Shift normal (contoh: 06:30 - 14:30)
+    final isInShift =
+        currentMinutes >= startMinutes && currentMinutes < endMinutes;
+    print('🔄 Shift $id normal: ${isInShift ? "AKTIF" : "tidak aktif"}');
+    print(
+        '   - Kondisi: $currentMinutes >= $startMinutes && $currentMinutes < $endMinutes');
+    return isInShift;
   }
 
   // Helper method untuk mengkonversi string waktu ke menit
   int _parseTimeToMinutes(String time) {
     try {
-      // Cek apakah format ISO (2025-07-25T00:30:00.000000Z)
-      if (time.contains('T') && time.contains('-')) {
-        final dateTime = DateTime.parse(time);
-        return dateTime.hour * 60 + dateTime.minute;
-      }
+      print('🔍 Parsing time: "$time"');
 
-      // Format HH:mm atau HH:mm:ss
+      // Format HH:mm:ss atau HH:mm
       final parts = time.split(':');
+      print('⏰ Split parts: $parts');
+
       if (parts.length >= 2) {
-        return int.parse(parts[0]) * 60 + int.parse(parts[1]);
+        final hours = int.parse(parts[0]);
+        final minutes = int.parse(parts[1]);
+        final totalMinutes = hours * 60 + minutes;
+        print('⏰ Parsed time: $time -> $hours:$minutes -> $totalMinutes menit');
+        return totalMinutes;
       }
 
-      print('⚠️ Format waktu tidak valid: $time');
+      print('⚠️ Format waktu tidak valid: $time (parts: $parts)');
       return 0;
     } catch (e) {
       print('⚠️ Error parsing time to minutes: $e');
@@ -111,67 +161,36 @@ class ShiftModel {
     }
   }
 
-  // Method untuk check apakah waktu saat ini ada dalam rentang shift ini
-  // Diperbarui untuk menangani shift yang melewati tengah malam dengan lebih baik
-  bool isCurrentTimeInShift() {
-    final now = DateTime.now();
-    final currentMinutes = now.hour * 60 + now.minute;
-
-    // Gunakan checkInTime dan checkOutTime jika tersedia
-    final String timeStart = (checkInTime != null && checkInTime!.isNotEmpty)
-        ? checkInTime!
-        : startTime;
-    final String timeEnd = (checkOutTime != null && checkOutTime!.isNotEmpty)
-        ? checkOutTime!
-        : endTime;
-
-    final startMinutes = _parseTimeToMinutes(timeStart);
-    final endMinutes = _parseTimeToMinutes(timeEnd);
-
-    if (startMinutes == 0 && endMinutes == 0) {
-      print('⚠️ Format waktu shift tidak valid: $timeStart - $timeEnd');
-      return false;
+  // Method untuk format jam shift untuk display
+  String getFormattedTimeRange() {
+    if (checkInTime != null &&
+        checkInTime!.isNotEmpty &&
+        checkOutTime != null &&
+        checkOutTime!.isNotEmpty) {
+      return '$checkInTime - $checkOutTime';
     }
-
-    print(
-        '🔍 Memeriksa shift: waktu saat ini=$currentMinutes menit, mulai=$startMinutes menit, selesai=$endMinutes menit');
-
-    // Tambahkan buffer 30 menit sebelum shift dimulai untuk memungkinkan check-in lebih awal
-    final startWithBuffer = startMinutes - 30;
-
-    // Handle case where shift crosses midnight (endMinutes < startMinutes)
-    if (endMinutes < startMinutes) {
-      final isInShift =
-          currentMinutes >= startWithBuffer || currentMinutes < endMinutes;
-      print(
-          '🌙 Shift melewati tengah malam: ${isInShift ? "AKTIF" : "tidak aktif"}');
-      return isInShift;
-    }
-
-    final isInShift =
-        currentMinutes >= startWithBuffer && currentMinutes < endMinutes;
-    print('🔄 Shift normal: ${isInShift ? "AKTIF" : "tidak aktif"}');
-    return isInShift;
+    return '$startTime - $endTime';
   }
 
   // Method untuk check apakah terlambat
   bool isLateForShift(DateTime checkInTime) {
     final checkInMinutes = checkInTime.hour * 60 + checkInTime.minute;
 
-    // Gunakan checkInTime jika tersedia, jika tidak gunakan startTime
-    final String timeStart =
-        (this.checkInTime != null && this.checkInTime!.isNotEmpty)
-            ? this.checkInTime!
-            : startTime;
-    final startParts = timeStart.split(':');
+    if (this.checkInTime == null || this.checkInTime!.isEmpty) {
+      print('⚠️ Shift $id: checkInTime tidak tersedia untuk late check');
+      return false;
+    }
 
-    if (startParts.length < 2) return false;
-
-    final startMinutes =
-        int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+    final startMinutes = _parseTimeToMinutes(this.checkInTime!);
+    if (startMinutes == 0) {
+      print('⚠️ Shift $id: Format waktu tidak valid untuk late check');
+      return false;
+    }
 
     // Tambahkan toleransi keterlambatan
     final lateMinutes = startMinutes + lateTolerance;
+    print(
+        '⏰ Shift $id late threshold: $lateMinutes menit (start: $startMinutes + tolerance: $lateTolerance)');
 
     return checkInMinutes > lateMinutes;
   }
@@ -179,42 +198,5 @@ class ShiftModel {
   @override
   String toString() {
     return 'ShiftModel{id: $id, name: $name, timeRange: ${getFormattedTimeRange()}, lateTolerance: $lateTolerance}';
-  }
-
-  // Helper method untuk mengecek apakah shift sudah berakhir
-  bool isShiftEnded() {
-    final now = DateTime.now();
-    final currentMinutes = now.hour * 60 + now.minute;
-
-    // Gunakan checkOutTime jika tersedia, jika tidak gunakan endTime
-    final String timeEnd = (checkOutTime != null && checkOutTime!.isNotEmpty)
-        ? checkOutTime!
-        : endTime;
-    final endParts = timeEnd.split(':');
-
-    if (endParts.length < 2) return false;
-
-    final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
-
-    // Jika shift melewati tengah malam dan sekarang sebelum waktu berakhir
-    final String timeStart = (checkInTime != null && checkInTime!.isNotEmpty)
-        ? checkInTime!
-        : startTime;
-    final startParts = timeStart.split(':');
-
-    if (startParts.length < 2) return false;
-
-    final startMinutes =
-        int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
-
-    if (endMinutes < startMinutes) {
-      // Jika sekarang setelah tengah malam tapi sebelum waktu berakhir
-      if (currentMinutes < endMinutes) return false;
-      // Jika sekarang setelah waktu mulai tapi sebelum tengah malam
-      if (currentMinutes >= startMinutes) return false;
-      return true;
-    }
-
-    return currentMinutes >= endMinutes;
   }
 }

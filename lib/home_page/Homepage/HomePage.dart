@@ -405,12 +405,14 @@ class HomePage extends GetView<HomeController> {
 
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: const Color(0xFF282828),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           _buildOutOfStockHeader(screenWidth),
           SizedBox(height: screenHeight * 0.005),
@@ -420,7 +422,7 @@ class HomePage extends GetView<HomeController> {
           ),
           SizedBox(height: screenHeight * 0.02),
           SizedBox(
-            height: screenHeight * 0.17, // Responsive height
+            height: 100, // Fixed height since no text below
             child: Obx(() {
               // Show error message if there's an error
               if (controller.hasError.value) {
@@ -479,7 +481,7 @@ class HomePage extends GetView<HomeController> {
               if (outOfStockItems.isEmpty) {
                 return const Center(
                   child: Text(
-                    'Tidak ada barang yang habis',
+                    'Tidak ada item stok habis',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -511,7 +513,7 @@ class HomePage extends GetView<HomeController> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const Text(
-          'Out Of Stock',
+          'Stok Habis',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -550,35 +552,23 @@ class HomePage extends GetView<HomeController> {
   Widget _buildMoreButton(Color primaryGreen) {
     return SizedBox(
       width: 35,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            height: 30,
-            width: 30,
-            margin: const EdgeInsets.only(top: 43),
-            decoration: BoxDecoration(
-              color: primaryGreen,
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.chevron_right,
-                color: Colors.black,
-                size: 25,
-              ),
+      height: 100, // Match the height of product cards
+      child: Center(
+        child: Container(
+          height: 30,
+          width: 30,
+          decoration: BoxDecoration(
+            color: primaryGreen,
+            shape: BoxShape.circle,
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.chevron_right,
+              color: Colors.black,
+              size: 20,
             ),
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'More',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -629,117 +619,121 @@ class HomePage extends GetView<HomeController> {
     return Container(
       width: 100,
       margin: const EdgeInsets.only(right: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 100,
-            width: 100,
-            margin: const EdgeInsets.only(top: 5),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: primaryGreen,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: item.image != null && item.image!.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            item.image!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes !=
-                                          null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Error loading image: $error');
-                              return const Center(
-                                child: Icon(
-                                  Icons.checkroom,
-                                  size: 40,
-                                  color: Colors.white,
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                      : const Center(
-                          child: Icon(
-                            Icons.checkroom,
-                            size: 40,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
+      child: Container(
+        height: 80, // Fixed height for image only
+        width: 100,
+        margin: const EdgeInsets.only(top: 5),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: primaryGreen,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: item.image != null && item.image!.isNotEmpty
+                  ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      color: Colors.black.withOpacity(0.7),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'SOLD OUT',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                      child: Image.network(
+                        item.image!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          print('Error loading image: $error');
+                          return const Center(
+                            child: Icon(
+                              Icons.checkroom,
+                              size: 30, // Reduced icon size
+                              color: Colors.white,
+                            ),
+                          );
+                        },
                       ),
+                    )
+                  : const Center(
+                      child: Icon(
+                        Icons.checkroom,
+                        size: 30, // Reduced icon size
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.black.withOpacity(0.7),
+                ),
+                child: const Center(
+                  child: Text(
+                    'STOK HABIS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10, // Reduced font size
                     ),
                   ),
                 ),
-                if (item.code != null)
-                  Positioned(
-                    top: 5,
-                    left: 5,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        item.code!,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+              ),
+            ),
+            // Badge ukuran di pojok kanan atas
+            Positioned(
+              top: 3,
+              right: 3,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  item.size ?? 'N/A',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            // Code badge di pojok kiri atas (jika ada)
+            if (item.code != null)
+              Positioned(
+                top: 3,
+                left: 3,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(
+                    item.code!,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 7,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${item.name} / ${item.size}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

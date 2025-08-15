@@ -9,13 +9,13 @@ import 'package:kliktoko/attendance_page/ShiftModel.dart';
 import 'package:kliktoko/storage/storage_service.dart';
 
 class AttendanceApiService {
-  static const String baseUrl = 'https://kliktoko.rplrus.com';
+  static const String baseUrl = 'https://adminkliktoko.my.id';
   final StorageService _storageService = StorageService();
   bool isDebugMode = true; // Set sesuai dengan mode aplikasi
-  
+
   // Timer untuk auto checkout
   Timer? _autoCheckoutTimer;
-  
+
   // Method untuk mendapatkan semua shift yang tersedia
   Future<List<ShiftModel>> getShifts() async {
     try {
@@ -24,7 +24,8 @@ class AttendanceApiService {
         throw Exception('No authentication token available');
       }
 
-      _logDebug('🔍 Mengambil data shift dengan token: ${token.substring(0, math.min(10, token.length))}...');
+      _logDebug(
+          '🔍 Mengambil data shift dengan token: ${token.substring(0, math.min(10, token.length))}...');
 
       final response = await http
           .get(
@@ -41,7 +42,9 @@ class AttendanceApiService {
         final jsonData = json.decode(response.body);
         List<dynamic> shiftsData = [];
 
-        if (jsonData is Map && jsonData.containsKey('data') && jsonData['data'] is List) {
+        if (jsonData is Map &&
+            jsonData.containsKey('data') &&
+            jsonData['data'] is List) {
           shiftsData = jsonData['data'];
         } else if (jsonData is List) {
           shiftsData = jsonData;
@@ -50,13 +53,16 @@ class AttendanceApiService {
         _logDebug('📋 Shifts data: $shiftsData');
 
         List<ShiftModel> shifts = shiftsData
-            .map((shiftData) => ShiftModel.fromJson(_convertToStringDynamicMap(shiftData)))
+            .map((shiftData) =>
+                ShiftModel.fromJson(_convertToStringDynamicMap(shiftData)))
             .toList();
 
         return shifts;
       } else {
-        _logDebug('❌ Failed to get shifts: ${response.statusCode}, ${response.body}');
-        throw Exception('Failed to get shifts. Status code: ${response.statusCode}');
+        _logDebug(
+            '❌ Failed to get shifts: ${response.statusCode}, ${response.body}');
+        throw Exception(
+            'Failed to get shifts. Status code: ${response.statusCode}');
       }
     } catch (e) {
       _logDebug('❌ Error getting shifts: $e');
@@ -72,7 +78,8 @@ class AttendanceApiService {
         throw Exception('No authentication token available');
       }
 
-      _logDebug('🔍 Mengambil status shift dengan token: ${token.substring(0, math.min(10, token.length))}...');
+      _logDebug(
+          '🔍 Mengambil status shift dengan token: ${token.substring(0, math.min(10, token.length))}...');
 
       final response = await http
           .get(
@@ -88,16 +95,20 @@ class AttendanceApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonData = json.decode(response.body);
         _logDebug('📋 Shift status data: $jsonData');
-        
+
         // Setup auto checkout jika user sedang aktif
-        if (jsonData is Map && jsonData.containsKey('is_active') && jsonData['is_active'] == true) {
+        if (jsonData is Map &&
+            jsonData.containsKey('is_active') &&
+            jsonData['is_active'] == true) {
           _setupAutoCheckout(jsonData);
         }
-        
+
         return jsonData is Map ? Map<String, dynamic>.from(jsonData) : {};
       } else {
-        _logDebug('❌ Failed to get shift status: ${response.statusCode}, ${response.body}');
-        throw Exception('Failed to get shift status. Status code: ${response.statusCode}');
+        _logDebug(
+            '❌ Failed to get shift status: ${response.statusCode}, ${response.body}');
+        throw Exception(
+            'Failed to get shift status. Status code: ${response.statusCode}');
       }
     } catch (e) {
       _logDebug('❌ Error getting shift status: $e');
@@ -110,56 +121,54 @@ class AttendanceApiService {
     try {
       // Cancel timer yang sudah ada jika ada
       _autoCheckoutTimer?.cancel();
-      
+
       // Konversi Map<dynamic, dynamic> ke Map<String, dynamic>
-      final Map<String, dynamic> convertedShiftData = _convertToStringDynamicMap(shiftData);
-      
+      final Map<String, dynamic> convertedShiftData =
+          _convertToStringDynamicMap(shiftData);
+
       // Cek apakah ada data shift dan durasi
-      if (convertedShiftData.containsKey('data') && 
-          convertedShiftData['data'] is Map && 
+      if (convertedShiftData.containsKey('data') &&
+          convertedShiftData['data'] is Map &&
           convertedShiftData['data'].containsKey('shift_time')) {
-        
         final shiftInfo = convertedShiftData['data'];
         String? endTimeStr;
-        
+
         // Coba ambil waktu akhir shift
-        if (shiftInfo.containsKey('shift_time') && shiftInfo['shift_time'] is String) {
+        if (shiftInfo.containsKey('shift_time') &&
+            shiftInfo['shift_time'] is String) {
           // Format: "07:30 - 14:30"
           final timeParts = shiftInfo['shift_time'].toString().split(' - ');
           if (timeParts.length == 2) {
             endTimeStr = timeParts[1];
           }
         }
-        
+
         if (endTimeStr != null) {
           _logDebug('⏰ Setting up auto checkout for end time: $endTimeStr');
-          
+
           // Parse waktu akhir shift
           final timeParts = endTimeStr.split(':');
           if (timeParts.length >= 2) {
             final endHour = int.tryParse(timeParts[0]) ?? 0;
             final endMinute = int.tryParse(timeParts[1]) ?? 0;
-            
+
             // Buat DateTime untuk waktu akhir shift hari ini
             final now = DateTime.now();
-            var endTime = DateTime(
-              now.year, 
-              now.month, 
-              now.day, 
-              endHour, 
-              endMinute
-            );
-            
+            var endTime =
+                DateTime(now.year, now.month, now.day, endHour, endMinute);
+
             // Jika waktu akhir sudah lewat, tidak perlu setup timer
             if (endTime.isBefore(now)) {
-              _logDebug('⏰ Shift end time already passed, no auto checkout needed');
+              _logDebug(
+                  '⏰ Shift end time already passed, no auto checkout needed');
               return;
             }
-            
+
             // Hitung durasi sampai waktu akhir shift
             final duration = endTime.difference(now);
-            _logDebug('⏰ Auto checkout will trigger in ${duration.inMinutes} minutes');
-            
+            _logDebug(
+                '⏰ Auto checkout will trigger in ${duration.inMinutes} minutes');
+
             // Setup timer untuk auto checkout
             _autoCheckoutTimer = Timer(duration, () async {
               _logDebug('⏰ Auto checkout timer triggered!');
@@ -328,7 +337,8 @@ class AttendanceApiService {
   }
 
   // Method untuk check in dengan foto
-  Future<AttendanceModel> checkInWithPhoto(String shiftId, File photoFile) async {
+  Future<AttendanceModel> checkInWithPhoto(
+      String shiftId, File photoFile) async {
     int retryCount = 0;
     const maxRetries = 2;
     const retryDelay = Duration(seconds: 2);
@@ -344,7 +354,8 @@ class AttendanceApiService {
         // Log waktu saat ini untuk debugging
         final now = DateTime.now();
         _logDebug('⏰ Waktu check-in: ${now.hour}:${now.minute}:${now.second}');
-        _logDebug('📥 Mengirim permintaan check-in dengan shift_id: $shiftId dan foto');
+        _logDebug(
+            '📥 Mengirim permintaan check-in dengan shift_id: $shiftId dan foto');
         _logDebug(
             '📝 Token prefix: ${token.length > 10 ? "${token.substring(0, 10)}..." : token}');
 
@@ -381,8 +392,8 @@ class AttendanceApiService {
         var photoFileName = photoFile.path.split('/').last;
 
         var multipartFile = http.MultipartFile(
-          'photo', 
-          photoStream, 
+          'photo',
+          photoStream,
           photoLength,
           filename: photoFileName,
         );
@@ -415,19 +426,24 @@ class AttendanceApiService {
 
             if (jsonData is Map) {
               if (jsonData.containsKey('data') && jsonData['data'] is Map) {
-                Map<String, dynamic> data = _convertToStringDynamicMap(jsonData['data']);
-                
+                Map<String, dynamic> data =
+                    _convertToStringDynamicMap(jsonData['data']);
+
                 // Cek apakah ada data attendance
-                if (data.containsKey('attendance') && data['attendance'] is Map) {
-                  _logDebug('📋 Parsing check-in response from "attendance" field');
-                  return AttendanceModel.fromJson(_convertToStringDynamicMap(data['attendance']));
+                if (data.containsKey('attendance') &&
+                    data['attendance'] is Map) {
+                  _logDebug(
+                      '📋 Parsing check-in response from "attendance" field');
+                  return AttendanceModel.fromJson(
+                      _convertToStringDynamicMap(data['attendance']));
                 } else {
                   _logDebug('📋 Parsing check-in response from "data" field');
                   return AttendanceModel.fromJson(data);
                 }
               } else {
                 _logDebug('📋 Parsing check-in response from entire response');
-                return AttendanceModel.fromJson(_convertToStringDynamicMap(jsonData));
+                return AttendanceModel.fromJson(
+                    _convertToStringDynamicMap(jsonData));
               }
             } else if (jsonData is List &&
                 jsonData.isNotEmpty &&
@@ -565,12 +581,16 @@ class AttendanceApiService {
             // Handle different API response structures
             if (jsonData is Map) {
               if (jsonData.containsKey('data') && jsonData['data'] is Map) {
-                Map<String, dynamic> data = _convertToStringDynamicMap(jsonData['data']);
-                
+                Map<String, dynamic> data =
+                    _convertToStringDynamicMap(jsonData['data']);
+
                 // Cek apakah ada data attendance
-                if (data.containsKey('attendance') && data['attendance'] is Map) {
-                  _logDebug('📋 Parsing check-in response from "attendance" field');
-                  return AttendanceModel.fromJson(_convertToStringDynamicMap(data['attendance']));
+                if (data.containsKey('attendance') &&
+                    data['attendance'] is Map) {
+                  _logDebug(
+                      '📋 Parsing check-in response from "attendance" field');
+                  return AttendanceModel.fromJson(
+                      _convertToStringDynamicMap(data['attendance']));
                 } else {
                   _logDebug('📋 Parsing check-in response from "data" field');
                   return AttendanceModel.fromJson(data);
@@ -706,12 +726,16 @@ class AttendanceApiService {
             // Handle different API response structures
             if (jsonData is Map) {
               if (jsonData.containsKey('data') && jsonData['data'] is Map) {
-                Map<String, dynamic> data = _convertToStringDynamicMap(jsonData['data']);
-                
+                Map<String, dynamic> data =
+                    _convertToStringDynamicMap(jsonData['data']);
+
                 // Cek apakah ada data attendance
-                if (data.containsKey('attendance') && data['attendance'] is Map) {
-                  _logDebug('📋 Parsing check-out response from "attendance" field');
-                  return AttendanceModel.fromJson(_convertToStringDynamicMap(data['attendance']));
+                if (data.containsKey('attendance') &&
+                    data['attendance'] is Map) {
+                  _logDebug(
+                      '📋 Parsing check-out response from "attendance" field');
+                  return AttendanceModel.fromJson(
+                      _convertToStringDynamicMap(data['attendance']));
                 } else {
                   _logDebug('📋 Parsing check-out response from "data" field');
                   return AttendanceModel.fromJson(data);
@@ -839,8 +863,8 @@ class AttendanceApiService {
         var photoFileName = photoFile.path.split('/').last;
 
         var multipartFile = http.MultipartFile(
-          'photo', 
-          photoStream, 
+          'photo',
+          photoStream,
           photoLength,
           filename: photoFileName,
         );
@@ -870,12 +894,16 @@ class AttendanceApiService {
             // Handle different API response structures
             if (jsonData is Map) {
               if (jsonData.containsKey('data') && jsonData['data'] is Map) {
-                Map<String, dynamic> data = _convertToStringDynamicMap(jsonData['data']);
-                
+                Map<String, dynamic> data =
+                    _convertToStringDynamicMap(jsonData['data']);
+
                 // Cek apakah ada data attendance
-                if (data.containsKey('attendance') && data['attendance'] is Map) {
-                  _logDebug('📋 Parsing check-out response from "attendance" field');
-                  return AttendanceModel.fromJson(_convertToStringDynamicMap(data['attendance']));
+                if (data.containsKey('attendance') &&
+                    data['attendance'] is Map) {
+                  _logDebug(
+                      '📋 Parsing check-out response from "attendance" field');
+                  return AttendanceModel.fromJson(
+                      _convertToStringDynamicMap(data['attendance']));
                 } else {
                   _logDebug('📋 Parsing check-out response from "data" field');
                   return AttendanceModel.fromJson(data);
@@ -966,7 +994,7 @@ class AttendanceApiService {
     _logDebug('⚠️ Semua upaya check-out gagal, mengembalikan model kosong');
     return AttendanceModel.empty();
   }
-  
+
   // Improved helper method to generate request headers with authentication token
   Future<Map<String, String>> _getHeaders([String? token]) async {
     final headers = {
@@ -1041,6 +1069,49 @@ class AttendanceApiService {
     return {'error': 'Invalid data format'};
   }
 
+  // Method untuk mendapatkan riwayat kehadiran
+  Future<AttendanceHistoryModel> getAttendanceHistory() async {
+    try {
+      final token = await _storageService.getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('No authentication token available');
+      }
+
+      _logDebug(
+          '🔍 Mengambil riwayat kehadiran dengan token: ${token.substring(0, math.min(10, token.length))}...');
+
+      final response = await http
+          .get(
+        Uri.parse('$baseUrl/api/shifts/history'),
+        headers: await _getHeaders(token),
+      )
+          .timeout(const Duration(seconds: 15), onTimeout: () {
+        throw TimeoutException('Request timed out');
+      });
+
+      _logDebug('📊 Attendance history response: ${response.statusCode}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonData = json.decode(response.body);
+        _logDebug('📋 Attendance history data: $jsonData');
+
+        if (jsonData is Map && jsonData.containsKey('data')) {
+          return AttendanceHistoryModel.fromJson(jsonData['data']);
+        } else {
+          throw Exception('Invalid response format');
+        }
+      } else {
+        _logDebug(
+            '❌ Failed to get attendance history: ${response.statusCode}, ${response.body}');
+        throw Exception(
+            'Failed to get attendance history. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      _logDebug('❌ Error getting attendance history: $e');
+      throw Exception('Failed to get attendance history: $e');
+    }
+  }
+
   // Helper untuk logging
   void _logDebug(String message) {
     // TODO: Ganti dengan framework logging yang sebenarnya
@@ -1051,7 +1122,7 @@ class AttendanceApiService {
       print(message);
     }
   }
-  
+
   // Dispose method untuk membersihkan resources
   void dispose() {
     _autoCheckoutTimer?.cancel();

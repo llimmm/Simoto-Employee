@@ -17,7 +17,7 @@ class FloatingBottomNavBar extends StatelessWidget {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    
+
     // Navigation bar dimensions - responsive to screen
     final navBarWidth = screenWidth * 0.85;
     final navBarHeight = 70.0;
@@ -109,7 +109,8 @@ class FloatingBottomNavBar extends StatelessWidget {
                   Positioned(
                     top: -27.0,
                     child: GestureDetector(
-                      onTap: () => controller.openQRScanner(), // Direct call to open QR scanner
+                      onTap: () => controller
+                          .openQRScanner(), // Direct call to open QR scanner
                       behavior: HitTestBehavior.opaque,
                       child: Container(
                         width: 54.0,
@@ -118,7 +119,8 @@ class FloatingBottomNavBar extends StatelessWidget {
                           color: const Color(0xFFB5DE42),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFF000000), // Black outer border
+                            color:
+                                const Color(0xFF000000), // Black outer border
                             width: 2.0,
                           ),
                           boxShadow: [
