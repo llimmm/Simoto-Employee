@@ -3,7 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:kliktoko/gudang_page/GudangControllers/GudangController.dart';
-import 'package:kliktoko/ReusablePage/detailPage.dart'; // Import the new detail page
+import 'package:kliktoko/ReusablePage/detailpage.dart'; // Corrected import casing
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
@@ -11,6 +11,7 @@ class CameraPage extends StatefulWidget {
   @override
   State<CameraPage> createState() => _CameraPageState();
 }
+
 class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   bool _isCameraPermissionGranted = false;
   bool _isFlashOn = false;

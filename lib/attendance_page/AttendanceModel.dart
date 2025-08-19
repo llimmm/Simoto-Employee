@@ -209,3 +209,62 @@ class AttendanceModel {
     return 'AttendanceModel{isCheckedIn: $isCheckedIn, date: $date, shiftId: $shiftId, checkInTime: $checkInTime, checkOutTime: $checkOutTime, username: $username, isLate: $isLate}';
   }
 }
+
+// Model untuk data riwayat kehadiran dari API
+class AttendanceHistoryModel {
+  final String bulan;
+  final int totalHariKerja;
+  final int totalTerlambat;
+  final List<AttendanceHistoryItem> history;
+
+  AttendanceHistoryModel({
+    required this.bulan,
+    required this.totalHariKerja,
+    required this.totalTerlambat,
+    required this.history,
+  });
+
+  factory AttendanceHistoryModel.fromJson(Map<String, dynamic> json) {
+    return AttendanceHistoryModel(
+      bulan: json['bulan'] ?? '',
+      totalHariKerja: json['total_hari_kerja'] ?? 0,
+      totalTerlambat: json['total_terlambat'] ?? 0,
+      history: (json['history'] as List<dynamic>?)
+              ?.map((item) => AttendanceHistoryItem.fromJson(item))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class AttendanceHistoryItem {
+  final String tanggal;
+  final String namaShift;
+  final String waktuShift;
+  final String status;
+  final String checkIn;
+  final String checkOut;
+  final String durasi;
+
+  AttendanceHistoryItem({
+    required this.tanggal,
+    required this.namaShift,
+    required this.waktuShift,
+    required this.status,
+    required this.checkIn,
+    required this.checkOut,
+    required this.durasi,
+  });
+
+  factory AttendanceHistoryItem.fromJson(Map<String, dynamic> json) {
+    return AttendanceHistoryItem(
+      tanggal: json['tanggal'] ?? '',
+      namaShift: json['nama_shift'] ?? '',
+      waktuShift: json['waktu_shift'] ?? '',
+      status: json['status'] ?? '',
+      checkIn: json['check_in'] ?? '',
+      checkOut: json['check_out'] ?? '',
+      durasi: json['durasi'] ?? '',
+    );
+  }
+}

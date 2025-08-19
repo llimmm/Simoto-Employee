@@ -30,14 +30,14 @@ class LoginResponse {
     // More robust parsing of API response
     Map<String, dynamic> userData = {};
     String token = '';
-    
+
     // Extract user data
     if (json.containsKey('data')) {
       var data = json['data'];
       if (data is Map) {
         // Try to get token from data
         token = data['token']?.toString() ?? '';
-        
+
         // Try to get user from data.user
         if (data.containsKey('user') && data['user'] is Map) {
           userData = Map<String, dynamic>.from(data['user']);
@@ -49,17 +49,17 @@ class LoginResponse {
         }
       }
     }
-    
+
     // If token wasn't found in data, try at top level
     if (token.isEmpty && json.containsKey('token')) {
       token = json['token']?.toString() ?? '';
     }
-    
+
     // If user data is still empty, check top level
     if (userData.isEmpty && json.containsKey('user') && json['user'] is Map) {
       userData = Map<String, dynamic>.from(json['user']);
     }
-    
+
     // Determine success based on status or success field
     bool success = false;
     if (json.containsKey('status')) {
@@ -67,17 +67,20 @@ class LoginResponse {
       success = status == true || status == 'success' || status == 1;
     } else if (json.containsKey('success')) {
       var successField = json['success'];
-      success = successField == true || successField == 'success' || successField == 1;
+      success = successField == true ||
+          successField == 'success' ||
+          successField == 1;
     } else {
       // Fallback - consider successful if we have a token
       success = token.isNotEmpty;
     }
-    
+
     String message = json['message']?.toString() ?? 'Login response received';
-    
-    print('Parsed LoginResponse: token=${token.isNotEmpty ? 'Present' : 'Missing'}, '
-          'userData=${userData.isNotEmpty ? userData : 'Empty'}, success=$success');
-    
+
+    print(
+        'Parsed LoginResponse: token=${token.isNotEmpty ? 'Present' : 'Missing'}, '
+        'userData=${userData.isNotEmpty ? userData : 'Empty'}, success=$success');
+
     return LoginResponse(
       token: token,
       message: message,

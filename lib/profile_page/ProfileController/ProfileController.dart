@@ -215,7 +215,7 @@ class ProfileController extends GetxController {
     Navigator.pushNamed(context, '/theme');
   }
 
-  Future<void> logout(BuildContext context) async {
+  Future<void> logout() async {
     try {
       isLoading.value = true; // Show loading state
 
@@ -226,23 +226,33 @@ class ProfileController extends GetxController {
       username.value = '';
       errorMessage.value = '';
 
-      // Show success message (optional)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logout berhasil')),
-      );
-
       // Navigate to start page (replace the entire navigation stack)
       Get.offAllNamed('/start');
+
+      // Show success message using Get.snackbar instead of ScaffoldMessenger
+      Get.snackbar(
+        'Logout Berhasil',
+        'Anda telah berhasil keluar dari aplikasi',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFAED15C),
+        colorText: const Color(0xFF282828),
+        duration: const Duration(seconds: 2),
+      );
     } catch (e) {
       print('Error during logout: $e');
 
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Terjadi kesalahan saat logout')),
-      );
-
-      // Still try to navigate to start page even if there's an error
+      // Navigate to start page even if there's an error
       Get.offAllNamed('/start');
+
+      // Show error message using Get.snackbar
+      Get.snackbar(
+        'Error',
+        'Terjadi kesalahan saat logout',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[400],
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
     } finally {
       isLoading.value = false;
     }

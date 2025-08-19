@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:kliktoko/storage/storage_service.dart';
 
 class SizeService {
-  static const String baseUrl = 'https://kliktoko.rplrus.com';
+  static const String baseUrl = 'https://adminkliktoko.my.id';
   
   // Singleton pattern
   static final SizeService _instance = SizeService._internal();

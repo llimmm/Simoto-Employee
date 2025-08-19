@@ -15,7 +15,7 @@ class SizeMappingUtility {
   factory SizeMappingUtility() => _instance;
   SizeMappingUtility._internal();
 
-  static const String baseUrl = 'https://kliktoko.rplrus.com';
+  static const String baseUrl = 'https://adminkliktoko.my.id';
 
   final StorageService _storageService = StorageService();
   final http.Client _client = http.Client();
@@ -131,17 +131,17 @@ class GudangController extends GetxController {
   final RxString searchQuery = RxString('');
 
   // Only keep reactive state for the filter and current route
-  final selectedFilter = 'All'.obs;
+  final selectedFilter = 'Semua'.obs;
   final List<String> filterOptions = [
-    'All',
-    'New Arrival',
-    'S Size',
-    'M Size',
-    'L Size',
-    'XL Size',
-    'XXL Size',
-    'XXXL Size',
-    '3L Size',
+    'Semua',
+    'Baru Datang',
+    'Ukuran S',
+    'Ukuran M',
+    'Ukuran L',
+    'Ukuran XL',
+    'Ukuran XXL',
+    'Ukuran XXXL',
+    'Ukuran 3L',
   ];
 
   // Signal to close dropdown
@@ -408,7 +408,7 @@ class GudangController extends GetxController {
           Get.offAllNamed('/login');
         });
       } else {
-        errorMessage = 'Failed to load products. Please try again later.';
+        errorMessage = 'Gagal memuat produk. Silakan coba lagi nanti.';
       }
 
       inventoryItems = [];
@@ -470,38 +470,38 @@ class GudangController extends GetxController {
           .toList();
     }
 
-    // Apply category filter if not "All"
-    if (selectedFilter.value != 'All') {
+    // Apply category filter if not "Semua"
+    if (selectedFilter.value != 'Semua') {
       switch (selectedFilter.value) {
-        case 'New Arrival':
+        case 'Baru Datang':
           result = result.where((item) => item.isNew).toList();
           break;
-        case 'S Size':
+        case 'Ukuran S':
           result =
               result.where((item) => item.size.toLowerCase() == 's').toList();
           break;
-        case 'M Size':
+        case 'Ukuran M':
           result =
               result.where((item) => item.size.toLowerCase() == 'm').toList();
           break;
-        case 'L Size':
+        case 'Ukuran L':
           result =
               result.where((item) => item.size.toLowerCase() == 'l').toList();
           break;
-        case 'XL Size':
+        case 'Ukuran XL':
           result =
               result.where((item) => item.size.toLowerCase() == 'xl').toList();
           break;
-        case 'XXL Size':
+        case 'Ukuran XXL':
           result =
               result.where((item) => item.size.toLowerCase() == 'xxl').toList();
           break;
-        case 'XXXL Size':
+        case 'Ukuran XXXL':
           result = result
               .where((item) => item.size.toLowerCase() == 'xxxl')
               .toList();
           break;
-        case '3L Size':
+        case 'Ukuran 3L':
           result =
               result.where((item) => item.size.toLowerCase() == '3l').toList();
           break;
@@ -533,7 +533,7 @@ class GudangController extends GetxController {
 
       // Check if it's an auth error
       if (e.toString().contains('401')) {
-        errorMessage = 'Your session has expired. Please log in again.';
+        errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
         // Handle auth error
         await _storageService.clearLoginData();
         Future.delayed(Duration(seconds: 1), () {
@@ -563,7 +563,7 @@ class GudangController extends GetxController {
 
       // Check if it's an auth error
       if (e.toString().contains('401')) {
-        errorMessage = 'Your session has expired. Please log in again.';
+        errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
         // Handle auth error
         await _storageService.clearLoginData();
         Future.delayed(Duration(seconds: 1), () {
@@ -593,7 +593,7 @@ class GudangController extends GetxController {
 
       // Check if it's an auth error
       if (e.toString().contains('401')) {
-        errorMessage = 'Your session has expired. Please log in again.';
+        errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
         // Handle auth error
         await _storageService.clearLoginData();
         Future.delayed(Duration(seconds: 1), () {

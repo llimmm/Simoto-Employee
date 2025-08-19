@@ -1,356 +1,707 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import '../ProfileController/ProfileController.dart';
+import 'package:kliktoko/attendance_page/AttendanceController.dart';
 
-class HistoryKerjaPage extends StatelessWidget {
-  final ProfileController controller = Get.find<ProfileController>();
+class HistoryKerjaPage extends StatefulWidget {
+  const HistoryKerjaPage({Key? key}) : super(key: key);
 
-  HistoryKerjaPage({Key? key}) : super(key: key);
+  @override
+  State<HistoryKerjaPage> createState() => _HistoryKerjaPageState();
+}
+
+class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
+  String selectedFilter = 'Semua';
+  final List<String> filterOptions = [
+    'Semua',
+    '7 Hari Lalu',
+    'Tepat Waktu',
+    'Terlambat',
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // Ensure attendance history is loaded
+    if (!Get.isRegistered<AttendanceController>()) {
+      Get.put(AttendanceController());
+    }
+    final controller = Get.find<AttendanceController>();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.loadAttendanceHistory();
+      controller.attendanceController.loadAttendanceHistory();
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEFF8E2),
+      backgroundColor: const Color(0xFFF1F9E9),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 2,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
-          'History Kerja',
+          'Riwayat Kehadiran',
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
         ),
+        backgroundColor: const Color(0xFF282828),
+        elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Get.back(),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: PopupMenuButton<String>(
+              icon:
+                  const Icon(Icons.filter_list, color: Colors.white, size: 24),
+              onSelected: (String value) {
+                setState(() {
+                  selectedFilter = value;
+                });
+              },
+              itemBuilder: (BuildContext context) =>
+                  filterOptions.map((String option) {
+                return PopupMenuItem<String>(
+                  value: option,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getFilterIcon(option),
+                        size: 18,
+                        color: selectedFilter == option
+                            ? const Color(0xFFA9CD47)
+                            : Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        option,
+                        style: TextStyle(
+                          color: selectedFilter == option
+                              ? const Color(0xFFA9CD47)
+                              : Colors.grey.shade800,
+                          fontWeight: selectedFilter == option
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      if (selectedFilter == option) ...[
+                        const Spacer(),
+                        const Icon(
+                          Icons.check,
+                          size: 16,
+                          color: Color(0xFFA9CD47),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            child: IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white, size: 24),
+              onPressed: () =>
+                  controller.attendanceController.loadAttendanceHistory(),
+            ),
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SafeArea(
+        child: GetX<AttendanceController>(
+          builder: (ctrl) => ctrl.attendanceController.isHistoryLoading.value
+              ? _buildLoadingState()
+              : _buildContent(context, ctrl),
+        ),
+      ),
+    );
+  }
+
+  IconData _getFilterIcon(String filter) {
+    switch (filter) {
+      case 'Semua':
+        return Icons.list;
+      case '7 Hari Lalu':
+        return Icons.calendar_today;
+      case 'Tepat Waktu':
+        return Icons.check_circle;
+      case 'Terlambat':
+        return Icons.schedule;
+      default:
+        return Icons.list;
+    }
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      color: const Color(0xFFF1F9E9),
+      child: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                const Text(
-                  'SHORT BY',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  height: 30,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.black12),
+                ],
+              ),
+              child: Column(
+                children: const [
+                  CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFFA9CD47)),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: 'Semua',
-                      iconSize: 16,
-                      style: const TextStyle(fontSize: 12, color: Colors.black),
-                      items: ['Semua', 'Senin', 'Selasa']
-                          .map((item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(item),
-                      ))
-                          .toList(),
-                      onChanged: (value) {},
+                  SizedBox(height: 16),
+                  Text(
+                    'Memuat Riwayat...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF282828),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, AttendanceController controller) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        await controller.attendanceController.loadAttendanceHistory();
+      },
+      color: const Color(0xFFA9CD47),
+      child: controller.attendanceController.attendanceHistory.isEmpty
+          ? _buildEmptyState()
+          : _buildHistoryList(context, controller),
+    );
+  }
+
+  Widget _buildHistoryList(
+      BuildContext context, AttendanceController controller) {
+    List<Map<String, dynamic>> filteredHistory =
+        _getFilteredHistory(controller);
+
+    if (filteredHistory.isEmpty) {
+      return _buildEmptyFilterState();
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredHistory.length,
+      itemBuilder: (context, index) {
+        final item = filteredHistory[index];
+        return _buildHistoryCard(item, context);
+      },
+    );
+  }
+
+  Widget _buildEmptyFilterState() {
+    String message = '';
+    String subtitle = '';
+    IconData icon = Icons.filter_list;
+
+    switch (selectedFilter) {
+      case '7 Hari Lalu':
+        message = 'Tidak Ada Riwayat 7 Hari Terakhir';
+        subtitle = 'Belum ada catatan kehadiran dalam 7 hari terakhir';
+        icon = Icons.calendar_today;
+        break;
+      case 'Tepat Waktu':
+        message = 'Tidak Ada Riwayat Tepat Waktu';
+        subtitle = 'Belum ada catatan kehadiran tepat waktu';
+        icon = Icons.check_circle;
+        break;
+      case 'Terlambat':
+        message = 'Tidak Ada Riwayat Terlambat';
+        subtitle = 'Belum ada catatan kehadiran terlambat';
+        icon = Icons.schedule;
+        break;
+      default:
+        message = 'Tidak Ada Riwayat';
+        subtitle = 'Belum ada catatan kehadiran';
+        icon = Icons.history;
+    }
+
+    return Container(
+      color: const Color(0xFFF1F9E9),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFA9CD47).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.filter_list,
+                  size: 60,
+                  color: Color(0xFFA9CD47),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 20,
+                  color: Color(0xFF282828),
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    selectedFilter = 'Semua';
+                  });
+                },
+                icon: const Icon(Icons.refresh, color: Color(0xFFA9CD47)),
+                label: const Text(
+                  'Lihat Semua Riwayat',
+                  style: TextStyle(
+                    color: Color(0xFFA9CD47),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      color: const Color(0xFFF1F9E9),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              SizedBox(height: 24),
+              Text(
+                'Belum Ada Riwayat',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Color(0xFF282828),
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Riwayat kehadiran akan muncul setelah Anda melakukan absen',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF7A7A7A),
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _getFilteredHistory(
+      AttendanceController controller) {
+    List<Map<String, dynamic>> allHistory =
+        controller.attendanceController.attendanceHistory;
+
+    switch (selectedFilter) {
+      case 'Semua':
+        return allHistory;
+      case '7 Hari Lalu':
+        return _filterByLast7Days(allHistory);
+      case 'Tepat Waktu':
+        return _filterByStatus(allHistory, 'Tepat Waktu');
+      case 'Terlambat':
+        return _filterByStatus(allHistory, 'Terlambat');
+      default:
+        return allHistory;
+    }
+  }
+
+  List<Map<String, dynamic>> _filterByLast7Days(
+      List<Map<String, dynamic>> history) {
+    DateTime now = DateTime.now();
+    DateTime sevenDaysAgo = now.subtract(const Duration(days: 7));
+
+    return history.where((item) {
+      try {
+        String dateStr = item['tanggal'] ?? '';
+        if (dateStr.isEmpty) return false;
+
+        DateTime itemDate = DateTime.parse(dateStr);
+        return itemDate.isAfter(sevenDaysAgo) ||
+            itemDate.isAtSameMomentAs(sevenDaysAgo);
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _filterByStatus(
+      List<Map<String, dynamic>> history, String status) {
+    return history.where((item) {
+      String itemStatus = item['status'] ?? '';
+
+      if (status == 'Tepat Waktu') {
+        return !itemStatus.toLowerCase().contains('terlambat');
+      } else if (status == 'Terlambat') {
+        return itemStatus.toLowerCase().contains('terlambat');
+      }
+
+      return false;
+    }).toList();
+  }
+
+  Widget _buildHistoryCard(Map<String, dynamic> item, BuildContext context) {
+    String date = item['tanggal'] ?? '';
+    try {
+      if (date.isNotEmpty) {
+        final parsedDate = DateTime.parse(date);
+        date = DateFormat('d MMM yyyy', 'id_ID').format(parsedDate);
+      }
+    } catch (_) {}
+
+    String shiftName = item['nama_shift'] ?? '';
+    String shiftTime = item['waktu_shift'] ?? '';
+    String status = item['status'] ?? '';
+    String checkIn = item['check_in'] ?? '-';
+
+    bool isLate = status.toLowerCase().contains('terlambat');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showHistoryDetail(item),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isLate ? Icons.schedule : Icons.check_circle,
+                      size: 20,
+                      color: isLate
+                          ? Colors.orange.shade600
+                          : const Color(0xFFA9CD47),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            shiftName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF282828),
+                            ),
+                          ),
+                          Text(
+                            shiftTime,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isLate
+                            ? Colors.orange.withOpacity(0.1)
+                            : const Color(0xFFA9CD47).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isLate
+                              ? Colors.orange.shade700
+                              : const Color(0xFFA9CD47),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      date,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(
+                      Icons.access_time,
+                      size: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      checkIn,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 12,
+                      color: Colors.grey.shade400,
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Obx(() => controller.isHistoryLoading.value
-                ? const Center(child: CircularProgressIndicator())
-                : controller.attendanceHistory.isEmpty
-                  ? const Center(child: Text('Belum ada riwayat kerja'))
-                  : ListView.builder(
-                      itemCount: controller.attendanceHistory.length,
-                      itemBuilder: (context, index) {
-                        final record = controller.attendanceHistory[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: _isAttendanceRecordToday(record) ? Colors.blue : Colors.black12,
-                              width: _isAttendanceRecordToday(record) ? 1.5 : 1,
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundColor: _getAttendanceStatusColor(record),
-                                child: Icon(_getAttendanceStatusIcon(record), color: Colors.white, size: 18),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _getAttendanceDayName(record),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Tanggal: ${_formatAttendanceDate(record)}',
-                                      style: const TextStyle(fontSize: 12, color: Colors.black54),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    _buildTimeInfo(record),
-                                    _buildLateIndicator(record),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                'Shift ${record['shift'] ?? record['shift_id'] ?? '1'}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
-  
-  // Helper to build time information
-  Widget _buildTimeInfo(Map<String, dynamic> record) {
-    final checkInTime = record['check_in_time'] ?? record['check_in'] ?? '-';
-    final checkOutTime = record['check_out_time'] ?? record['check_out'] ?? '-';
-    
-    // Clean time strings
-    String inTime = checkInTime;
-    if (inTime.contains(' ')) {
-      inTime = inTime.split(' ')[1];
-    }
-    
-    String outTime = checkOutTime;
-    if (outTime.contains(' ')) {
-      outTime = outTime.split(' ')[1];
-    }
-    
-    return Row(
-      children: [
-        Icon(Icons.access_time, size: 14, color: Colors.blue[700]),
-        const SizedBox(width: 4),
-        Text(
-          'In: $inTime',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.blue[700],
-            fontWeight: FontWeight.w500,
+
+  void _showHistoryDetail(Map<String, dynamic> item) {
+    String date = item['tanggal'] ?? '';
+    try {
+      if (date.isNotEmpty) {
+        final parsedDate = DateTime.parse(date);
+        date = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(parsedDate);
+      }
+    } catch (_) {}
+
+    String shiftName = item['nama_shift'] ?? '';
+    String shiftTime = item['waktu_shift'] ?? '';
+    String status = item['status'] ?? '';
+    String checkIn = item['check_in'] ?? '-';
+    String checkOut = item['check_out'] ?? '-';
+    String durasi = item['durasi'] ?? '';
+
+    bool isLate = status.toLowerCase().contains('terlambat');
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.history,
+                    color: Color(0xFFA9CD47),
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Detail Kehadiran',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF282828),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () => Get.back(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildSimpleDetailRow('Tanggal', date),
+              const SizedBox(height: 16),
+              _buildSimpleDetailRow('Shift', '$shiftName ($shiftTime)'),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text(
+                    'Status: ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isLate
+                          ? Colors.orange.withOpacity(0.1)
+                          : const Color(0xFFA9CD47).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isLate
+                            ? Colors.orange.shade700
+                            : const Color(0xFFA9CD47),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildSimpleDetailRow('Waktu Masuk', checkIn),
+              const SizedBox(height: 16),
+              _buildSimpleDetailRow('Waktu Keluar', checkOut),
+              if (durasi.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSimpleDetailRow('Durasi Kerja', durasi),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFA9CD47),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Get.back(),
+                  child: const Text(
+                    'Tutup',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 12),
-        outTime != '-' ? Icon(Icons.logout, size: 14, color: Colors.green[700]) : const SizedBox(),
-        outTime != '-' ? const SizedBox(width: 4) : const SizedBox(),
-        outTime != '-' ? Text(
-          'Out: $outTime',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.green[700],
-            fontWeight: FontWeight.w500,
-          ),
-        ) : const SizedBox(),
-      ],
+      ),
     );
   }
-  
-  // Helper to build late indicator
-  Widget _buildLateIndicator(Map<String, dynamic> record) {
-    // Check if the record indicates late attendance
-    bool isLate = false;
-    
-    if (record.containsKey('is_late') && record['is_late'] == true) {
-      isLate = true;
-    } else {
-      // Try to determine based on check-in time
-      String checkInTime = record['check_in_time'] ?? record['check_in'] ?? '';
-      String shiftId = record['shift_id']?.toString() ?? record['shift']?.toString() ?? '1';
-      
-      if (checkInTime.isNotEmpty && checkInTime != '-') {
-        // Extract time part if there's a space (datetime format)
-        if (checkInTime.contains(' ')) {
-          checkInTime = checkInTime.split(' ')[1];
-        }
-        
-        // Extract hours and minutes
-        List<String> timeParts = checkInTime.split(':');
-        if (timeParts.length >= 2) {
-          int hour = int.tryParse(timeParts[0]) ?? 0;
-          int minute = int.tryParse(timeParts[1]) ?? 0;
-          
-          // Shift 1: late after 7:30 AM
-          // Shift 2: late after 2:30 PM
-          if (shiftId == '1') {
-            isLate = (hour > 7 || (hour == 7 && minute > 30));
-          } else if (shiftId == '2') {
-            isLate = (hour > 14 || (hour == 14 && minute > 30));
-          }
-        }
-      }
-    }
-    
-    if (isLate) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 4.0),
-        child: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.orange[700]),
-            const SizedBox(width: 4),
-            Text(
-              'Terlambat',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.orange[700],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+
+  Widget _buildSimpleDetailRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w500,
+          ),
         ),
-      );
-    }
-    
-    return const SizedBox.shrink();
-  }
-  
-  // Helper to determine if a record is for today
-  bool _isAttendanceRecordToday(Map<String, dynamic> record) {
-    String dateStr = record['date'] ?? 
-                  record['attendance_date'] ?? 
-                  record['created_at']?.toString().split(' ')[0] ?? '';
-    
-    if (dateStr.isEmpty) return false;
-    
-    try {
-      final date = DateTime.parse(dateStr);
-      final today = DateTime.now();
-      
-      return date.year == today.year && 
-             date.month == today.month && 
-             date.day == today.day;
-    } catch (e) {
-      print('Error checking if record is for today: $e');
-      return false;
-    }
-  }
-  
-  // Format date for display
-  String _formatAttendanceDate(Map<String, dynamic> record) {
-    String dateStr = record['date'] ?? 
-                  record['attendance_date'] ?? 
-                  record['created_at']?.toString().split(' ')[0] ?? '';
-    
-    if (dateStr.isEmpty) return 'Tanggal tidak tersedia';
-    
-    try {
-      final date = DateTime.parse(dateStr);
-      return DateFormat('d MMMM yyyy', 'id_ID').format(date);
-    } catch (e) {
-      print('Error formatting date: $e');
-      return dateStr; // Return original string if parsing fails
-    }
-  }
-  
-  // Get day name for the attendance record
-  String _getAttendanceDayName(Map<String, dynamic> record) {
-    String dateStr = record['date'] ?? 
-                  record['attendance_date'] ?? 
-                  record['created_at']?.toString().split(' ')[0] ?? '';
-    
-    if (dateStr.isEmpty) return 'Laporan Kerja';
-    
-    try {
-      final date = DateTime.parse(dateStr);
-      return 'Laporan Kerja ${DateFormat('EEEE', 'id_ID').format(date)}';
-    } catch (e) {
-      print('Error getting day name: $e');
-      return 'Laporan Kerja';
-    }
-  }
-  
-  // Get appropriate status icon for attendance record
-  IconData _getAttendanceStatusIcon(Map<String, dynamic> record) {
-    final checkOutTime = record['check_out_time'] ?? record['check_out'] ?? '-';
-    final isLate = record['is_late'] == true;
-    
-    if (checkOutTime != '-') {
-      return Icons.check_circle; // Completed shift
-    } else if (isLate) {
-      return Icons.access_time; // Late but no checkout
-    } else {
-      return Icons.person_outline; // Regular attendance, no checkout
-    }
-  }
-  
-  // Get status color for the avatar
-  Color _getAttendanceStatusColor(Map<String, dynamic> record) {
-    final checkOutTime = record['check_out_time'] ?? record['check_out'] ?? '-';
-    bool isLate = false;
-    
-    if (record.containsKey('is_late') && record['is_late'] == true) {
-      isLate = true;
-    } else {
-      // Try to determine based on check-in time
-      String checkInTime = record['check_in_time'] ?? record['check_in'] ?? '';
-      String shiftId = record['shift_id']?.toString() ?? record['shift']?.toString() ?? '1';
-      
-      if (checkInTime.isNotEmpty && checkInTime != '-') {
-        // Extract time part if there's a space (datetime format)
-        if (checkInTime.contains(' ')) {
-          checkInTime = checkInTime.split(' ')[1];
-        }
-        
-        // Extract hours and minutes
-        List<String> timeParts = checkInTime.split(':');
-        if (timeParts.length >= 2) {
-          int hour = int.tryParse(timeParts[0]) ?? 0;
-          int minute = int.tryParse(timeParts[1]) ?? 0;
-          
-          // Shift 1: late after 7:30 AM
-          // Shift 2: late after 2:30 PM
-          if (shiftId == '1') {
-            isLate = (hour > 7 || (hour == 7 && minute > 30));
-          } else if (shiftId == '2') {
-            isLate = (hour > 14 || (hour == 14 && minute > 30));
-          }
-        }
-      }
-    }
-    
-    if (checkOutTime != '-') {
-      return Colors.green[700]!; // Completed shift
-    } else if (isLate) {
-      return Colors.orange[700]!; // Late but no checkout
-    } else {
-      return Colors.blue[700]!; // Regular attendance, no checkout
-    }
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF282828),
+          ),
+        ),
+      ],
+    );
   }
 }

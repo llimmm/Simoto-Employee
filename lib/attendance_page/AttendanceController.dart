@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'SharedAttendanceController.dart';
 import 'package:flutter/material.dart';
 import 'package:kliktoko/attendance_page/AttendanceModel.dart';
+import 'package:kliktoko/attendance_page/ShiftModel.dart';
 
 class AttendanceController extends GetxController {
   // Get shared attendance controller
@@ -29,6 +30,9 @@ class AttendanceController extends GetxController {
   RxList<Map<String, dynamic>> get attendanceHistory =>
       attendanceController.attendanceHistory;
   RxBool get isHistoryLoading => attendanceController.isHistoryLoading;
+
+  // Getter for shiftMap
+  Rx<Map<String, ShiftModel>> get shiftMap => attendanceController.shiftMap;
 
   // Function to check attendance status from server
   Future<void> checkAttendanceStatus() async {
@@ -189,6 +193,182 @@ class AttendanceController extends GetxController {
       // Force check attendance status after error to ensure UI is in sync
       print('🔄 Checking attendance status after error');
       await checkAttendanceStatus();
+    }
+  }
+
+  // Method to show check-out confirmation dialog
+  Future<void> showCheckOutConfirmation() async {
+    // Check current status first
+    if (!hasCheckedIn.value) {
+      Get.snackbar(
+        'Tidak Dapat Check-out',
+        'Anda belum melakukan check-in hari ini.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[400],
+        colorText: Colors.white,
+        duration: Duration(seconds: 3),
+      );
+      return;
+    }
+
+    if (hasCheckedOut.value) {
+      Get.snackbar(
+        'Sudah Check-out',
+        'Anda sudah melakukan check-out hari ini.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange[400],
+        colorText: Colors.white,
+        duration: Duration(seconds: 3),
+      );
+      return;
+    }
+
+    // Show simple confirmation dialog with animation
+    final result = await Get.dialog(
+      AnimatedContainer(
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon with animation
+                AnimatedContainer(
+                  duration: Duration(milliseconds: 500),
+                  child: Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.logout,
+                      color: Colors.red[600],
+                      size: 32,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+
+                // Title
+                Text(
+                  'Check-out',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                SizedBox(height: 8),
+
+                // Message
+                Text(
+                  'Apakah Anda yakin ingin melakukan check-out?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 24),
+
+                // Buttons
+                Row(
+                  children: [
+                    // Cancel button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Get.back(result: false),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Batal',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+
+                    // Check-out button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Get.back(result: true),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.red[600],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Check-out',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: true,
+      transitionDuration: Duration(milliseconds: 300),
+      transitionCurve: Curves.easeInOut,
+    );
+
+    // If user confirmed, proceed with check-out
+    if (result == true) {
+      try {
+        await checkOut();
+
+        // Show success message
+        Get.snackbar(
+          'Check-out Berhasil',
+          'Anda telah berhasil melakukan check-out hari ini.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green[400],
+          colorText: Colors.white,
+          duration: Duration(seconds: 3),
+          icon: Icon(
+            Icons.check_circle,
+            color: Colors.white,
+          ),
+        );
+      } catch (e) {
+        // Error handling is already done in checkOut method
+        print('❌ Check-out failed after confirmation: $e');
+      }
     }
   }
 
