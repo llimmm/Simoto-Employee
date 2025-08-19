@@ -57,8 +57,37 @@ class ShiftModel {
     String endTime = '';
 
     try {
-      startTime = json['start_time']?.toString() ?? '';
-      endTime = json['end_time']?.toString() ?? '';
+      // Handle ISO datetime format (2025-08-16T00:30:00.000000Z)
+      final startTimeRaw = json['start_time']?.toString() ?? '';
+      final endTimeRaw = json['end_time']?.toString() ?? '';
+
+      // Extract time part from ISO datetime if needed
+      if (startTimeRaw.contains('T')) {
+        final startDateTime = DateTime.tryParse(startTimeRaw);
+        if (startDateTime != null) {
+          startTime =
+              '${startDateTime.hour.toString().padLeft(2, '0')}:${startDateTime.minute.toString().padLeft(2, '0')}:00';
+        } else {
+          startTime = startTimeRaw;
+        }
+      } else {
+        startTime = startTimeRaw;
+      }
+
+      if (endTimeRaw.contains('T')) {
+        final endDateTime = DateTime.tryParse(endTimeRaw);
+        if (endDateTime != null) {
+          endTime =
+              '${endDateTime.hour.toString().padLeft(2, '0')}:${endDateTime.minute.toString().padLeft(2, '0')}:00';
+        } else {
+          endTime = endTimeRaw;
+        }
+      } else {
+        endTime = endTimeRaw;
+      }
+
+      print('✅ Parsed startTime: $startTime');
+      print('✅ Parsed endTime: $endTime');
     } catch (e) {
       print('⚠️ Error parsing start_time/end_time: $e');
       startTime = '';

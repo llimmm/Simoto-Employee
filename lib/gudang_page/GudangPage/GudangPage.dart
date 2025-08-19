@@ -917,7 +917,7 @@ class _GudangPageState extends State<GudangPage>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      NumberFormat('#,###', 'id_ID').format(item.price),
+                      'Rp ${NumberFormat('#,###', 'id_ID').format(item.price)}',
                       style: TextStyle(
                         color: primaryGreen,
                         fontSize: 9,
@@ -1291,7 +1291,7 @@ class _GudangPageState extends State<GudangPage>
                         ),
                         const SizedBox(width: 2),
                         Text(
-                          NumberFormat('#,###', 'id_ID').format(item.price),
+                          'Rp ${NumberFormat('#,###', 'id_ID').format(item.price)}',
                           style: TextStyle(
                             color: primaryGreen,
                             fontSize: 14,

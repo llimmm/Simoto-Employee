@@ -269,53 +269,15 @@ class AttendancePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Obx(() {
-            final shiftStatus =
-                controller.attendanceController.shiftStatus.value;
-            final shiftMap = controller.attendanceController.shiftMap.value;
-
-            // Cari shift yang aktif dari API
-            ShiftModel? activeShift;
-            for (final shift in shiftMap.values) {
-              if (shift.isCurrentTimeInShift()) {
-                activeShift = shift;
-                break;
-              }
-            }
-
-            // Jika tidak ada shift aktif dari API, cek shiftStatus sebagai fallback
-            if (activeShift == null) {
-              bool hasActiveShiftFromMessage =
-                  shiftStatus.message.contains('belum absen di shift') &&
-                      !shiftStatus.message.contains('tidak ada shift');
-
-              if (hasActiveShiftFromMessage) {
-                // Extract shift number from message
-                final shiftMatch =
-                    RegExp(r'shift (\d+)').firstMatch(shiftStatus.message);
-                if (shiftMatch != null) {
-                  final shiftNumber = shiftMatch.group(1);
-                  // Find shift from shiftMap
-                  for (final shift in shiftMap.values) {
-                    if (shift.id.toString() == shiftNumber) {
-                      activeShift = shift;
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-
-            return Text(
-              activeShift != null ? 'Shift Saat Ini:' : 'Status Shift:',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            );
-          }),
+          Text(
+            'Jadwal Shift:',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
           SizedBox(height: screenHeight * 0.015),
           Obx(() {
+            final shiftMap = controller.attendanceController.shiftMap.value;
             final shiftStatus =
                 controller.attendanceController.shiftStatus.value;
-            final shiftMap = controller.attendanceController.shiftMap.value;
 
             // Cari shift yang aktif dari API
             ShiftModel? activeShift;
@@ -349,65 +311,132 @@ class AttendancePage extends StatelessWidget {
               }
             }
 
-            if (activeShift != null) {
-              // Tampilkan informasi shift yang aktif dari API
-              final formattedTime = activeShift.getFormattedTimeRange();
-              return Text(
-                '${activeShift.name} : ($formattedTime)',
-                style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
+            if (shiftMap.isNotEmpty) {
+              final shiftList = shiftMap.values.toList();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Tampilkan semua shift yang tersedia
+                  ...shiftList.map((shift) {
+                    final formattedTime = shift.getFormattedTimeRange();
+                    final isActive = activeShift?.id == shift.id;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? const Color(0xFFE8F5E8)
+                            : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isActive
+                              ? const Color(0xFFA9CD47)
+                              : Colors.grey[300]!,
+                          width: isActive ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? const Color(0xFFA9CD47)
+                                  : Colors.grey[400],
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  shift.name,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: isActive
+                                        ? const Color(0xFFA9CD47)
+                                        : Colors.grey[800],
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  formattedTime,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isActive
+                                        ? const Color(0xFFA9CD47)
+                                        : Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isActive)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFA9CD47),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'AKTIF',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+
+                  // Tampilkan status dari API jika ada
+                  if (shiftStatus.message.isNotEmpty && activeShift == null)
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange[300]!),
+                      ),
+                      child: Text(
+                        shiftStatus.message,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    ),
+                ],
               );
             } else {
-              // Jika tidak ada shift aktif, tampilkan pesan dari API atau informasi shift yang tersedia
-              if (shiftStatus.message.isNotEmpty) {
-                return Text(
-                  shiftStatus.message,
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: const Text(
+                  'Memuat jadwal shift...',
                   style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600]),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                );
-              } else {
-                // Tampilkan informasi shift yang tersedia
-                if (shiftMap.isNotEmpty) {
-                  final shiftList = shiftMap.values.toList();
-                  String shiftInfo = '';
-
-                  // Tampilkan semua shift yang tersedia
-                  for (var i = 0; i < shiftList.length; i++) {
-                    final shift = shiftList[i];
-                    final formattedTime = shift.getFormattedTimeRange();
-                    if (i > 0) shiftInfo += '\n';
-                    shiftInfo += '${shift.name} : ($formattedTime)';
-                  }
-
-                  return Text(
-                    shiftInfo,
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[600]),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 3,
-                  );
-                }
-
-                return Text(
-                  'Tidak ada shift yang aktif saat ini',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600]),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                );
-              }
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              );
             }
           }),
         ],
