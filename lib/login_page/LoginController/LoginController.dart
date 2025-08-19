@@ -226,6 +226,11 @@ class LoginController extends GetxController {
     return false;
   }
 
+  // Public wrapper to allow testing and external validation without exposing internals
+  bool isValidUserRole(Map<String, dynamic> userData) {
+    return _isValidUserRole(userData);
+  }
+
   // Helper method to convert English error messages to Indonesian
   String _convertErrorMessageToIndonesian(String errorMessage) {
     if (errorMessage.isEmpty) {

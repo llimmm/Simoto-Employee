@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get/get.dart';
 import 'package:kliktoko/login_page/LoginController/LoginController.dart';
-import 'package:kliktoko/login_page/LoginModel/LoginModel.dart';
 
 void main() {
   group('LoginController Role Validation Tests', () {
@@ -22,7 +20,7 @@ void main() {
         'email': 'john@example.com'
       };
 
-      bool isValid = controller._isValidUserRole(userData);
+      bool isValid = controller.isValidUserRole(userData);
       expect(isValid, true);
     });
 
@@ -33,7 +31,7 @@ void main() {
         'email': 'jane@example.com'
       };
 
-      bool isValid = controller._isValidUserRole(userData);
+      bool isValid = controller.isValidUserRole(userData);
       expect(isValid, true);
     });
 
@@ -44,7 +42,7 @@ void main() {
         'email': 'admin@example.com'
       };
 
-      bool isValid = controller._isValidUserRole(userData);
+      bool isValid = controller.isValidUserRole(userData);
       expect(isValid, false);
     });
 
@@ -55,7 +53,7 @@ void main() {
         'email': 'admin@example.com'
       };
 
-      bool isValid = controller._isValidUserRole(userData);
+      bool isValid = controller.isValidUserRole(userData);
       expect(isValid, false);
     });
 
@@ -65,14 +63,14 @@ void main() {
         'email': 'unknown@example.com'
       };
 
-      bool isValid = controller._isValidUserRole(userData);
+      bool isValid = controller.isValidUserRole(userData);
       expect(isValid, true);
     });
 
     test('should allow login when user data is empty (fallback)', () {
       Map<String, dynamic> userData = {};
 
-      bool isValid = controller._isValidUserRole(userData);
+      bool isValid = controller.isValidUserRole(userData);
       expect(isValid, true);
     });
 
@@ -82,18 +80,18 @@ void main() {
         'name': 'User 1',
         'user_role': 'karyawan'
       };
-      expect(controller._isValidUserRole(userData1), true);
+      expect(controller.isValidUserRole(userData1), true);
 
       // Test type field
       Map<String, dynamic> userData2 = {'name': 'User 2', 'type': 'karyawan'};
-      expect(controller._isValidUserRole(userData2), true);
+      expect(controller.isValidUserRole(userData2), true);
 
       // Test user_type field
       Map<String, dynamic> userData3 = {
         'name': 'User 3',
         'user_type': 'karyawan'
       };
-      expect(controller._isValidUserRole(userData3), true);
+      expect(controller.isValidUserRole(userData3), true);
     });
 
     test('should block other roles that are not karyawan', () {
@@ -103,7 +101,7 @@ void main() {
         'email': 'manager@example.com'
       };
 
-      bool isValid = controller._isValidUserRole(userData);
+      bool isValid = controller.isValidUserRole(userData);
       expect(isValid, false);
     });
 
@@ -114,7 +112,7 @@ void main() {
         'email': 'user@example.com'
       };
 
-      bool isValid = controller._isValidUserRole(userData);
+      bool isValid = controller.isValidUserRole(userData);
       expect(isValid, true);
     });
   });
