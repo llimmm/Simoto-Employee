@@ -752,6 +752,78 @@ class ApiService {
       throw _handleError(e);
     }
   }
+
+  // Get current timezone information
+  Future<Map<String, dynamic>> getCurrentTimezone() async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$baseUrl/api/timezone/current'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('Timezone API response status: ${response.statusCode}');
+      print('Timezone API response body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          final jsonData = json.decode(response.body);
+          return jsonData is Map<String, dynamic>
+              ? jsonData
+              : {'success': false, 'error': 'Invalid response format'};
+        } catch (e) {
+          print('Error parsing timezone response: $e');
+          return {'success': false, 'error': 'Failed to parse response'};
+        }
+      } else {
+        return {
+          'success': false,
+          'error': 'Request failed with status: ${response.statusCode}'
+        };
+      }
+    } catch (e) {
+      print('Error fetching timezone: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  // Get active location information
+  Future<Map<String, dynamic>> getActiveLocation() async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$baseUrl/api/location/active'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('Location API response status: ${response.statusCode}');
+      print('Location API response body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          final jsonData = json.decode(response.body);
+          return jsonData is Map<String, dynamic>
+              ? jsonData
+              : {'success': false, 'error': 'Invalid response format'};
+        } catch (e) {
+          print('Error parsing location response: $e');
+          return {'success': false, 'error': 'Failed to parse response'};
+        }
+      } else {
+        return {
+          'success': false,
+          'error': 'Request failed with status: ${response.statusCode}'
+        };
+      }
+    } catch (e) {
+      print('Error fetching location: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
 }
 
 class HttpException implements Exception {

@@ -6,6 +6,7 @@ import 'package:kliktoko/ReusablePage/detailpage.dart';
 import '../GudangControllers/GudangController.dart';
 import '../GudangModel/ProductModel.dart';
 import 'package:intl/intl.dart';
+import 'package:kliktoko/attendance_page/AttendanceController.dart';
 
 class GudangPage extends StatefulWidget {
   const GudangPage({Key? key}) : super(key: key);
@@ -242,6 +243,16 @@ class _GudangPageState extends State<GudangPage>
   // Simple refresh function to reload all data
   Future<void> _refreshData() async {
     try {
+      // Refresh radius location check first (if attendance controller is available)
+      try {
+        if (Get.isRegistered<AttendanceController>()) {
+          final attendanceController = Get.find<AttendanceController>();
+          await attendanceController.refreshLocation();
+        }
+      } catch (e) {
+        print('Error refreshing location: $e');
+      }
+
       // Load categories and inventory data in parallel
       await Future.wait([
         controller.loadCategories(),

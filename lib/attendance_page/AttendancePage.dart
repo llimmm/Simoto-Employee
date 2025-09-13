@@ -47,6 +47,10 @@ class AttendancePage extends StatelessWidget {
       double screenHeight, AttendanceController controller) {
     return RefreshIndicator(
         onRefresh: () async {
+          // Refresh radius location check first
+          await controller.refreshLocation();
+
+          // Then refresh other data
           await controller.checkAttendanceStatus();
           controller.attendanceController.loadUserData();
           controller.attendanceController.determineShift();
@@ -72,8 +76,6 @@ class AttendancePage extends StatelessWidget {
                   SizedBox(height: screenHeight * 0.025),
                   _buildShiftInfoCard(screenWidth, screenHeight, controller),
                   SizedBox(height: screenHeight * 0.025),
-                  _buildAttendanceHistoryCard(
-                      screenWidth, screenHeight, controller),
                   SizedBox(height: screenHeight * 0.04),
                   _buildCheckInOutButton(controller),
                   SizedBox(height: screenHeight * 0.010),
@@ -161,6 +163,50 @@ class AttendancePage extends StatelessWidget {
           Text('Status Kehadiran',
               style: TextStyle(fontSize: 14, color: Colors.grey[600])),
           const SizedBox(height: 11.5),
+
+          // Radius Status Display
+          Obx(() => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: controller.isWithinRadius.value
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: controller.isWithinRadius.value
+                        ? Colors.green
+                        : Colors.red,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      controller.isWithinRadius.value
+                          ? Icons.location_on
+                          : Icons.location_off,
+                      color: controller.isWithinRadius.value
+                          ? Colors.green
+                          : Colors.red,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      controller.locationStatus.value,
+                      style: TextStyle(
+                        color: controller.isWithinRadius.value
+                            ? Colors.green
+                            : Colors.red,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -444,280 +490,6 @@ class AttendancePage extends StatelessWidget {
     );
   }
 
-  // Card showing attendance history
-  Widget _buildAttendanceHistoryCard(double screenWidth, double screenHeight,
-      AttendanceController controller) {
-    return _buildCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Riwayat Kehadiran',
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800])),
-          SizedBox(height: screenHeight * 0.015),
-          Obx(() {
-            if (controller.attendanceController.isHistoryLoading.value) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Colors.blue[300]!),
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            if (controller.attendanceController.attendanceHistory.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(Icons.history_toggle_off,
-                          size: 36, color: Colors.grey[400]),
-                      const SizedBox(height: 8),
-                      Text('Belum ada riwayat kehadiran',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[600])),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            // Show most recent 3 attendance records
-            final historyToShow = controller
-                .attendanceController.attendanceHistory
-                .take(3)
-                .toList();
-
-            return Column(
-              children: [
-                ...historyToShow
-                    .map((item) => _buildHistoryItemNew(item, screenWidth)),
-                if (controller.attendanceController.attendanceHistory.length >
-                    3)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Center(
-                      child: TextButton(
-                        onPressed: () {
-                          Get.to(() => const HistoryKerjaPage());
-                        },
-                        child: Text('Lihat Semua',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blue[600],
-                                fontWeight: FontWeight.w500)),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  // Helper widget to build history items
-  Widget _buildHistoryItem(Map<String, dynamic> item, double screenWidth) {
-    // Extract and format date
-    String date = item['date'] ??
-        item['attendance_date'] ??
-        item['created_at']?.toString().split(' ')[0] ??
-        '';
-    try {
-      if (date.isNotEmpty) {
-        final parsedDate = DateTime.parse(date);
-        date = DateFormat('d MMM yyyy', 'id_ID').format(parsedDate);
-      }
-    } catch (e) {
-      print('Error parsing date: $e');
-    }
-
-    // Extract and format times
-    String checkInTime = item['check_in_time'] ?? item['check_in'] ?? '-';
-    String checkOutTime = item['check_out_time'] ?? item['check_out'] ?? '-';
-
-    if (checkInTime.contains(' ')) checkInTime = checkInTime.split(' ')[1];
-    if (checkOutTime.contains(' ')) checkOutTime = checkOutTime.split(' ')[1];
-
-    // Determine if late
-    bool isLate = item['is_late'] == true;
-    if (!isLate && checkInTime != '-') {
-      String shiftId =
-          item['shift_id']?.toString() ?? item['shift']?.toString() ?? '1';
-      List<String> timeParts = checkInTime.split(':');
-      if (timeParts.length >= 2) {
-        int hour = int.tryParse(timeParts[0]) ?? 0;
-        int minute = int.tryParse(timeParts[1]) ?? 0;
-
-        if (shiftId == '1') {
-          isLate = (hour > 7 || (hour == 7 && minute > 30));
-        } else if (shiftId == '2') {
-          isLate = (hour > 14 || (hour == 14 && minute > 30));
-        }
-      }
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          // Date
-          Expanded(
-            flex: 3,
-            child: Text(date,
-                style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
-                    color: Colors.grey[700])),
-          ),
-          // Check-in time
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                Icon(Icons.login,
-                    size: 14,
-                    color: isLate ? Colors.orange[700] : Colors.green[600]),
-                const SizedBox(width: 2),
-                Text(
-                  checkInTime,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isLate ? Colors.orange[700] : Colors.green[600],
-                    fontWeight: isLate ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-                if (isLate)
-                  Icon(Icons.warning_rounded,
-                      size: 12, color: Colors.orange[700]),
-              ],
-            ),
-          ),
-          // Check-out time
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                Icon(Icons.logout,
-                    size: 14,
-                    color: checkOutTime != '-'
-                        ? Colors.blue[600]
-                        : Colors.grey[400]),
-                const SizedBox(width: 2),
-                Text(
-                  checkOutTime,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: checkOutTime != '-'
-                        ? Colors.blue[600]
-                        : Colors.grey[400],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Helper widget to build history items for new API format
-  Widget _buildHistoryItemNew(Map<String, dynamic> item, double screenWidth) {
-    // Extract and format date
-    String date = item['tanggal'] ?? '';
-    try {
-      if (date.isNotEmpty) {
-        final parsedDate = DateTime.parse(date);
-        date = DateFormat('d MMM yyyy', 'id_ID').format(parsedDate);
-      }
-    } catch (e) {
-      print('Error parsing date: $e');
-    }
-
-    // Extract data from new API format
-    String shiftName = item['nama_shift'] ?? '';
-    String status = item['status'] ?? '';
-
-    // Determine if late based on status
-    bool isLate = status.toLowerCase().contains('terlambat');
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          // Shift name
-          Expanded(
-            flex: 2,
-            child: Text(
-              shiftName,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          // Date
-          Expanded(
-            flex: 2,
-            child: Text(
-              date,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-          // Status
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: isLate ? Colors.orange[100] : Colors.green[100],
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                status,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isLate ? Colors.orange[700] : Colors.green[700],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Improved Check-in/Check-out button
   Widget _buildCheckInOutButton(AttendanceController controller) {
     return Obx(() {
@@ -827,15 +599,51 @@ class AttendancePage extends StatelessWidget {
       // No active shift available
       if (!hasActiveShift) {
         return _buildButton(
+          color: Colors.orange[400]!,
+          onPressed: null,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.schedule, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  shiftStatus.message.isNotEmpty
+                      ? shiftStatus.message
+                      : 'Tidak Ada Shift Saat Ini',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // Check if user is outside radius - button should be grey
+      if (!controller.isWithinRadius.value) {
+        return _buildButton(
           color: Colors.grey[400]!,
           onPressed: null,
-          child: Text(
-            shiftStatus.message.isNotEmpty
-                ? shiftStatus.message
-                : 'Tidak Ada Shift Saat Ini',
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-            textAlign: TextAlign.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.location_off, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Anda berada di luar jangkauan kantor',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
         );
       }
@@ -900,7 +708,8 @@ class AttendancePage extends StatelessWidget {
       // Not checked in - show check-in button with photo
       print('🔍 User not checked in - showing check-in button');
       return _buildButton(
-        color: const Color(0xFF8BC34A),
+        color:
+            const Color(0xFF4CAF50), // Green color for successful shift check
         onPressed: () async {
           // Verify attendance status before attempting check-in
           await controller.checkAttendanceStatus();
@@ -933,12 +742,12 @@ class AttendancePage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.camera_alt, color: Colors.black),
+            const Icon(Icons.camera_alt, color: Colors.white),
             const SizedBox(width: 8),
             Text(
               'Absen ${activeShiftName.isNotEmpty ? activeShiftName : 'dengan Foto'}',
               style: const TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 16),
             ),

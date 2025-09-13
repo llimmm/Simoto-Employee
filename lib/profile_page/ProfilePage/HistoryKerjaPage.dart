@@ -180,6 +180,14 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
   Widget _buildContent(BuildContext context, AttendanceController controller) {
     return RefreshIndicator(
       onRefresh: () async {
+        // Refresh radius location check first
+        try {
+          await controller.refreshLocation();
+        } catch (e) {
+          print('Error refreshing location: $e');
+        }
+
+        // Then refresh attendance history
         await controller.attendanceController.loadAttendanceHistory();
       },
       color: const Color(0xFFA9CD47),

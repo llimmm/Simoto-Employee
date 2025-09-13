@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.kliktoko"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     // Menghapus ndkVersion yang bermasalah
 
     compileOptions {

@@ -522,7 +522,8 @@ class AttendanceApiService {
   }
 
   // Method untuk check in tanpa foto
-  Future<AttendanceModel> checkIn({String shiftId = '1'}) async {
+  Future<AttendanceModel> checkIn(
+      {String shiftId = '1', bool checkRadius = true}) async {
     int retryCount = 0;
     const maxRetries = 2;
     const retryDelay = Duration(seconds: 2);
@@ -539,6 +540,7 @@ class AttendanceApiService {
         final now = DateTime.now();
         _logDebug('⏰ Waktu check-in: ${now.hour}:${now.minute}:${now.second}');
         _logDebug('📥 Mengirim permintaan check-in dengan shift_id: $shiftId');
+        _logDebug('📍 Radius checking: $checkRadius');
         _logDebug(
             '📝 Token prefix: ${token.length > 10 ? "${token.substring(0, 10)}..." : token}');
 

@@ -34,6 +34,13 @@ class AttendanceController extends GetxController {
   // Getter for shiftMap
   Rx<Map<String, ShiftModel>> get shiftMap => attendanceController.shiftMap;
 
+  // New getters for radius checking
+  RxBool get isWithinRadius => attendanceController.isWithinRadius;
+  RxBool get isLocationLoading => attendanceController.isLocationLoading;
+  RxString get locationStatus => attendanceController.locationStatus;
+  RxDouble get distanceToOffice => attendanceController.distanceToOffice;
+  RxString get currentAddress => attendanceController.currentAddress;
+
   // Function to check attendance status from server
   Future<void> checkAttendanceStatus() async {
     try {
@@ -50,6 +57,40 @@ class AttendanceController extends GetxController {
     } catch (e) {
       print('Error loading attendance history in controller: $e');
     }
+  }
+
+  // Function to check radius and shift availability
+  Future<Map<String, dynamic>> checkRadiusAndShift() async {
+    try {
+      return await attendanceController.checkRadiusAndShift();
+    } catch (e) {
+      print('Error checking radius and shift in controller: $e');
+      return {
+        'canProceed': false,
+        'reason': 'error',
+        'message': 'Terjadi kesalahan saat memeriksa lokasi dan shift',
+      };
+    }
+  }
+
+  // Function to check radius only
+  Future<bool> checkRadius() async {
+    try {
+      return await attendanceController.checkRadius();
+    } catch (e) {
+      print('Error checking radius in controller: $e');
+      return false;
+    }
+  }
+
+  // Method untuk refresh lokasi
+  Future<void> refreshLocation() async {
+    await attendanceController.refreshLocation();
+  }
+
+  // Debug method untuk testing location service
+  Future<void> debugLocation() async {
+    await attendanceController.debugLocation();
   }
 
   void setShift(String shiftNumber) =>

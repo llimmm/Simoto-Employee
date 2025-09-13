@@ -7,6 +7,7 @@ import 'package:kliktoko/attendance_page/AttendanceModel.dart';
 import 'package:kliktoko/attendance_page/AttendanceApiService.dart';
 import 'package:kliktoko/attendance_page/ShiftModel.dart';
 import 'package:kliktoko/attendance_page/ShiftStatusModel.dart';
+import 'package:kliktoko/attendance_page/LocationService.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -26,6 +27,13 @@ class SharedAttendanceController extends GetxController {
   final RxBool hasError = false.obs;
   final RxString errorMessage = ''.obs;
   final RxBool isOutsideShiftHours = false.obs;
+
+  // New observables for radius checking
+  final RxBool isWithinRadius = false.obs;
+  final RxBool isLocationLoading = false.obs;
+  final RxString locationStatus = 'Memeriksa lokasi...'.obs;
+  final RxDouble distanceToOffice = 0.0.obs;
+  final RxString currentAddress = ''.obs;
 
   // Observable for shift status
   final Rx<ShiftStatusModel> shiftStatus = ShiftStatusModel.empty().obs;
@@ -48,6 +56,7 @@ class SharedAttendanceController extends GetxController {
 
   final StorageService _storageService = StorageService();
   final AttendanceApiService _attendanceService = AttendanceApiService();
+  final LocationService _locationService = LocationService();
 
   // API service base URL - matches the one in ApiService.dart
   static const String baseUrl = 'https://adminkliktoko.my.id';
@@ -182,6 +191,26 @@ class SharedAttendanceController extends GetxController {
       isLoading.value = true;
       hasError.value = false;
       errorMessage.value = '';
+
+      // Cek radius terlebih dahulu
+      print('📍 Checking radius before check-in...');
+      final radiusResult = await checkRadiusAndShift();
+
+      if (!radiusResult['canProceed']) {
+        if (radiusResult['reason'] == 'radius') {
+          hasError.value = true;
+          errorMessage.value = radiusResult['message'];
+          print('❌ Check-in blocked: ${radiusResult['message']}');
+          return;
+        } else if (radiusResult['reason'] == 'shift') {
+          hasError.value = true;
+          errorMessage.value = radiusResult['message'];
+          print('❌ Check-in blocked: ${radiusResult['message']}');
+          return;
+        }
+      }
+
+      print('✅ Radius and shift check passed, proceeding with check-in');
 
       // Make sure we have a non-empty selected shift
       if (selectedShift.value.isEmpty) {
@@ -610,9 +639,6 @@ class SharedAttendanceController extends GetxController {
     }
 
     // Jika shift tidak ditemukan di data API, cek apakah di luar jam kerja
-    final now = DateTime.now();
-    final currentTime = now.hour * 60 + now.minute; // Convert to minutes
-
     // Jika di luar jam shift (setelah 03:30 atau sebelum 07:30)
     if (isOutsideShiftHours.value) {
       return 'Selamat Tidur!';
@@ -692,11 +718,6 @@ class SharedAttendanceController extends GetxController {
     }
   }
 
-  // Helper method for min function
-  int _min(int a, int b) {
-    return a < b ? a : b;
-  }
-
   // Flags to manage timer execution
   bool _isShiftTimerRunning = false;
   bool _isAttendanceStatusTimerRunning = false;
@@ -706,6 +727,13 @@ class SharedAttendanceController extends GetxController {
   void onInit() {
     super.onInit();
     print('➡️ SharedAttendanceController initialized');
+
+    // Muat data lokasi dari API segera saat controller diinisialisasi
+    _locationService.loadLocationFromAPI().then((_) {
+      print('✅ Location data loaded in SharedAttendanceController');
+    }).catchError((e) {
+      print('❌ Error loading location data: $e');
+    });
 
     // Muat data shift dari API segera saat controller diinisialisasi
     loadShiftList().then((_) {
@@ -782,11 +810,203 @@ class SharedAttendanceController extends GetxController {
             '⚠️ Skipping history timer as previous execution is still running');
       }
     });
+
+    // Periksa radius lokasi setiap 2 menit
+    Timer.periodic(Duration(minutes: 2), (_) async {
+      try {
+        await checkRadius();
+      } catch (e) {
+        print('❌ Error in radius timer: $e');
+      }
+    });
+
+    // Periksa radius lokasi saat pertama kali
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await checkRadius();
+    });
   }
 
   void setShift(String shiftNumber) {
     selectedShift.value = shiftNumber;
     print('👉 Shift manually set to: $shiftNumber');
+  }
+
+  // Method untuk mengecek radius lokasi
+  Future<bool> checkRadius() async {
+    try {
+      isLocationLoading.value = true;
+      locationStatus.value = 'Memeriksa lokasi...';
+
+      final isWithin = await _locationService.isWithinRadius();
+      isWithinRadius.value = isWithin;
+
+      if (isWithin) {
+        final locationName = _locationService.locationName;
+        locationStatus.value = 'Dalam jangkauan $locationName';
+        final distance = await _locationService.getDistanceToOffice();
+        if (distance != null) {
+          distanceToOffice.value = distance;
+        }
+
+        // Get current address
+        final currentPosition = await _locationService.getCurrentLocation();
+        if (currentPosition != null) {
+          currentAddress.value =
+              await _locationService.getAddressFromCoordinates(
+            currentPosition.latitude,
+            currentPosition.longitude,
+          );
+        }
+      } else {
+        final locationName = _locationService.locationName;
+        locationStatus.value = 'Luar jangkauan $locationName';
+        final distance = await _locationService.getDistanceToOffice();
+        if (distance != null) {
+          distanceToOffice.value = distance;
+        }
+      }
+
+      print(
+          '📍 Radius check result: ${isWithin ? "Within" : "Outside"} radius');
+      return isWithin;
+    } catch (e) {
+      print('❌ Error checking radius: $e');
+      locationStatus.value = 'Error memeriksa lokasi';
+      isWithinRadius.value = false;
+      return false;
+    } finally {
+      isLocationLoading.value = false;
+    }
+  }
+
+  // Method untuk mengecek radius dan shift secara berurutan
+  Future<Map<String, dynamic>> checkRadiusAndShift() async {
+    try {
+      print('🔍 Starting radius and shift check...');
+
+      // Pertama, cek radius (hanya untuk display, tidak memblokir)
+      final isWithin = await checkRadius();
+
+      // Jika dalam radius, cek shift
+      final shiftInfo = await checkShiftAvailability();
+
+      return {
+        'canProceed': shiftInfo['canProceed'],
+        'reason': 'shift',
+        'message': shiftInfo['message'],
+        'shiftData': shiftInfo['shiftData'],
+        'distance': distanceToOffice.value,
+        'isWithinRadius': isWithin, // Tambahkan info radius untuk display
+      };
+    } catch (e) {
+      print('❌ Error in checkRadiusAndShift: $e');
+      return {
+        'canProceed': false,
+        'reason': 'error',
+        'message': 'Terjadi kesalahan saat memeriksa shift',
+      };
+    }
+  }
+
+  // Method untuk mengecek ketersediaan shift
+  Future<Map<String, dynamic>> checkShiftAvailability() async {
+    try {
+      // Cek apakah ada shift yang tersedia
+      if (shiftList.isEmpty) {
+        return {
+          'canProceed': false,
+          'message': 'Tidak ada shift yang tersedia',
+          'shiftData': null,
+        };
+      }
+
+      // Cek shift yang aktif berdasarkan waktu
+      for (final shift in shiftList) {
+        if (shift.isCurrentTimeInShift()) {
+          return {
+            'canProceed': true,
+            'message': 'Shift tersedia dan aktif',
+            'shiftData': shift,
+          };
+        }
+      }
+
+      return {
+        'canProceed': false,
+        'message': 'Tidak ada shift yang aktif saat ini',
+        'shiftData': null,
+      };
+    } catch (e) {
+      print('❌ Error checking shift availability: $e');
+      return {
+        'canProceed': false,
+        'message': 'Error memeriksa ketersediaan shift',
+        'shiftData': null,
+      };
+    }
+  }
+
+  // Method untuk refresh lokasi dan radius
+  Future<void> refreshLocation() async {
+    try {
+      print('🔄 Refreshing location...');
+      // Load location data from API first
+      await _locationService.loadLocationFromAPI();
+      // Then check radius with updated location data
+      await checkRadius();
+    } catch (e) {
+      print('❌ Error refreshing location: $e');
+    }
+  }
+
+  // Debug method untuk testing location service
+  Future<void> debugLocation() async {
+    try {
+      print('🔍 Debugging location in SharedAttendanceController...');
+      print('⏰ Debug time: ${DateTime.now()}');
+
+      final debugInfo = await _locationService.debugLocationStatus();
+
+      print('📊 Debug Info:');
+      debugInfo.forEach((key, value) {
+        print('   $key: $value');
+      });
+
+      // Update observables based on debug info
+      if (debugInfo['error'] == null) {
+        isLocationLoading.value = false;
+        isWithinRadius.value = debugInfo['isWithinRadius'] ?? false;
+        distanceToOffice.value = debugInfo['distance'] ?? 0.0;
+
+        final locationName = debugInfo['locationName'] ?? 'kantor';
+        if (debugInfo['isWithinRadius'] == true) {
+          locationStatus.value =
+              'Dalam jangkauan $locationName (${debugInfo['distance']?.toStringAsFixed(1)}m)';
+        } else {
+          locationStatus.value =
+              'Luar jangkauan $locationName (${debugInfo['distance']?.toStringAsFixed(1)}m)';
+        }
+
+        // Get current address if position available
+        if (debugInfo['hasPosition'] == true && debugInfo['position'] != null) {
+          final position = debugInfo['position'] as Map<String, dynamic>;
+          final lat = position['latitude'] as double;
+          final lng = position['longitude'] as double;
+
+          currentAddress.value =
+              await _locationService.getAddressFromCoordinates(lat, lng);
+        }
+      }
+
+      print('📍 Updated observables:');
+      print('   - isWithinRadius: ${isWithinRadius.value}');
+      print(
+          '   - distanceToOffice: ${distanceToOffice.value.toStringAsFixed(2)}m');
+      print('   - locationStatus: ${locationStatus.value}');
+      print('   - currentAddress: ${currentAddress.value}');
+    } catch (e) {
+      print('❌ Error in debugLocation: $e');
+    }
   }
 
   // Flag to prevent recursive calls in determineShiftFromServer

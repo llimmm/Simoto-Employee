@@ -80,6 +80,8 @@ class HomeController extends GetxController {
 
     _storageService.init().then((_) {
       checkAuthAndLoadData();
+      // Load attendance history
+      loadAttendanceHistory();
     });
 
     // Register to listen for changes in the shared controller
@@ -225,6 +227,15 @@ class HomeController extends GetxController {
       }
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // Load attendance history
+  Future<void> loadAttendanceHistory() async {
+    try {
+      await attendanceController.loadAttendanceHistory();
+    } catch (e) {
+      print('Error loading attendance history in HomeController: $e');
     }
   }
 

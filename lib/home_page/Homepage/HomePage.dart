@@ -5,35 +5,102 @@ import '../../../navigation/NavController.dart';
 import '../HomeController/HomeController.dart';
 import 'package:intl/intl.dart';
 import '../../../gudang_page/GudangModel/ProductModel.dart';
-import 'package:kliktoko/ReusablePage/categoryPage.dart'; // Added import for CategoryPage
-import 'package:kliktoko/gudang_page/GudangModel/CategoryModel.dart'; // Added import for Category model
-import 'package:kliktoko/gudang_page/GudangServices/CategoryService.dart'; // Added import for CategoryService
+import 'package:kliktoko/profile_page/ProfilePage/HistoryKerjaPage.dart'; // Added import for HistoryKerjaPage
+import '../../../APIService/ApiService.dart';
 
 // Create a separate controller just for the clock
 class ClockController extends GetxController {
   var timeString = ''.obs;
   var dateString = ''.obs;
+  var isLoading = false.obs;
+  var hasError = false.obs;
+  var errorMessage = ''.obs;
   Timer? _timer;
+  Timer? _apiRefreshTimer;
+  DateTime? _lastApiTime;
+  int _apiTimeOffset = 0; // Offset in seconds from API time
+
+  final ApiService _apiService = ApiService();
 
   @override
   void onInit() {
     super.onInit();
     // Initialize time immediately
-    _updateTime();
+    _updateTimeFromAPI();
     // Start timer to update every second
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTime());
+    // Start timer to refresh from API every 5 minutes
+    _apiRefreshTimer = Timer.periodic(const Duration(minutes: 5), (_) => _updateTimeFromAPI());
   }
 
   @override
   void onClose() {
     _timer?.cancel();
+    _apiRefreshTimer?.cancel();
     super.onClose();
   }
 
   void _updateTime() {
-    final now = DateTime.now();
-    timeString.value = DateFormat('HH:mm:ss').format(now);
-    dateString.value = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
+    if (_lastApiTime != null) {
+      // Calculate current time based on API time + offset
+      final now = _lastApiTime!.add(Duration(seconds: _apiTimeOffset));
+      timeString.value = DateFormat('HH:mm:ss').format(now);
+      dateString.value = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
+      _apiTimeOffset++;
+    } else {
+      // Fallback to system time if API time not available
+      final now = DateTime.now();
+      timeString.value = DateFormat('HH:mm:ss').format(now);
+      dateString.value = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
+    }
+  }
+
+  Future<void> _updateTimeFromAPI() async {
+    try {
+      isLoading.value = true;
+      hasError.value = false;
+      errorMessage.value = '';
+
+      final response = await _apiService.getCurrentTimezone();
+      
+      if (response['success'] == true && response['data'] != null) {
+        final data = response['data'];
+        final currentTime = data['current_time'];
+        
+        if (currentTime != null) {
+          // Parse the API time
+          _lastApiTime = DateTime.parse(currentTime);
+          _apiTimeOffset = 0; // Reset offset
+          
+          // Update display immediately
+          timeString.value = DateFormat('HH:mm:ss').format(_lastApiTime!);
+          dateString.value = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_lastApiTime!);
+          
+          print('Updated time from API: $currentTime');
+        }
+      } else {
+        // If API fails, fallback to system time
+        _lastApiTime = null;
+        _updateTime();
+        hasError.value = true;
+        errorMessage.value = 'Failed to get time from server, using local time';
+        print('API time failed, using system time: ${response['error']}');
+      }
+    } catch (e) {
+      print('Error fetching time from API: $e');
+      // Fallback to system time
+      _lastApiTime = null;
+      _updateTime();
+      hasError.value = true;
+      errorMessage.value = 'Failed to get time from server, using local time';
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Method to manually refresh time from API
+  Future<void> refreshTime() async {
+    await _updateTimeFromAPI();
   }
 }
 
@@ -44,20 +111,46 @@ class ClockWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Use Get.put to ensure controller is registered before use
-    final controller = Get.put(ClockController());
+    final controller = Get.put(ClockController(), tag: 'clock');
 
     return Center(
       child: Column(
         children: [
-          // Current time
-          Obx(() => Text(
-                controller.timeString.value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 40,
-                  color: Color(0xFF282828),
-                ),
-              )),
+          // Current time with loading indicator
+          Obx(() {
+            if (controller.isLoading.value) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[600]!),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Loading...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              );
+            }
+            
+            return Text(
+              controller.timeString.value,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 40,
+                color: Color(0xFF282828),
+              ),
+            );
+          }),
           const SizedBox(height: 4),
           // Current date
           Obx(() => Text(
@@ -68,6 +161,21 @@ class ClockWidget extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
               )),
+          const SizedBox(height: 8),
+          // Error message only (no separate refresh button)
+          Obx(() {
+            if (controller.hasError.value) {
+              return Text(
+                controller.errorMessage.value,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.orange[700],
+                ),
+                textAlign: TextAlign.center,
+              );
+            }
+            return const SizedBox.shrink();
+          }),
         ],
       ),
     );
@@ -101,10 +209,28 @@ class HomePage extends GetView<HomeController> {
             ),
             child: RefreshIndicator(
               onRefresh: () async {
+                // Refresh time from API first
+                try {
+                  final clockController = Get.find<ClockController>(tag: 'clock');
+                  await clockController.refreshTime();
+                } catch (e) {
+                  print('Error refreshing time: $e');
+                }
+
+                // Refresh radius location check
+                try {
+                  await controller.attendanceController.refreshLocation();
+                } catch (e) {
+                  print('Error refreshing location: $e');
+                }
+
+                // Then refresh other data
                 await controller.loadProducts();
                 // Also refresh attendance status when pulling to refresh
                 try {
                   await controller.attendanceController.checkAttendanceStatus();
+                  // Load attendance history
+                  await controller.attendanceController.loadAttendanceHistory();
                 } catch (e) {
                   print('Error refreshing attendance status: $e');
                 }
@@ -145,62 +271,14 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget _buildLayeredCards(double screenWidth, double screenHeight) {
-    return Stack(
-      clipBehavior: Clip.none,
+    return Column(
       children: [
-        // Bottom layer - Category card
-        _buildCategoryCard(screenWidth, screenHeight),
-        const SizedBox(height: 80),
-        // Top layer - Attendance status card
+        // Attendance status card
         _buildAttendanceCard(screenWidth, screenHeight),
+        SizedBox(height: screenHeight * 0.025),
+        // Attendance history card
+        _buildAttendanceHistoryCard(screenWidth, screenHeight),
       ],
-    );
-  }
-
-  Widget _buildCategoryCard(double screenWidth, double screenHeight) {
-    // Calculate responsive vertical position of category card
-    final topPadding = screenHeight < 600 ? 70.0 : 80.0;
-
-    return Padding(
-      padding: EdgeInsets.only(top: topPadding),
-      child: Container(
-        padding: EdgeInsets.only(
-            top: screenHeight * 0.1, bottom: screenHeight * 0.02),
-        decoration: BoxDecoration(
-          color: const Color(0xFF282828),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: screenWidth < 360
-            ? Wrap(
-                spacing: screenWidth * 0.05,
-                runSpacing: screenHeight * 0.01,
-                alignment: WrapAlignment.spaceEvenly,
-                children: [
-                  _buildCategoryItem('T-Shirt', Icons.checkroom),
-                  _buildCategoryItem('Kids', Icons.child_care),
-                  _buildCategoryItem('Pants', Icons.accessibility_new),
-                  _buildCategoryItem('Adults', Icons.person),
-                  _buildCategoryItem('Uniform', Icons.school),
-                ],
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildCategoryItem('T-Shirt', Icons.checkroom),
-                  _buildCategoryItem('Kids', Icons.child_care),
-                  _buildCategoryItem('Pants', Icons.accessibility_new),
-                  _buildCategoryItem('Adults', Icons.person),
-                  _buildCategoryItem('Uniform', Icons.school),
-                ],
-              ),
-      ),
     );
   }
 
@@ -251,6 +329,50 @@ class HomePage extends GetView<HomeController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Radius Status Display
+          Obx(() => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: controller.attendanceController.isWithinRadius.value
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: controller.attendanceController.isWithinRadius.value
+                        ? Colors.green
+                        : Colors.red,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      controller.attendanceController.isWithinRadius.value
+                          ? Icons.location_on
+                          : Icons.location_off,
+                      color:
+                          controller.attendanceController.isWithinRadius.value
+                              ? Colors.green
+                              : Colors.red,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      controller.attendanceController.locationStatus.value,
+                      style: TextStyle(
+                        color:
+                            controller.attendanceController.isWithinRadius.value
+                                ? Colors.green
+                                : Colors.red,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
           Obx(() {
             // Get status text and color based on attendance state
             String statusText = controller.getStatusMessage();
@@ -362,6 +484,183 @@ class HomePage extends GetView<HomeController> {
             }
             return const SizedBox.shrink();
           }),
+        ],
+      ),
+    );
+  }
+
+  // Card showing attendance history
+  Widget _buildAttendanceHistoryCard(double screenWidth, double screenHeight) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(screenWidth * 0.0399),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Riwayat Kehadiran',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800])),
+            SizedBox(height: screenHeight * 0.015),
+            Obx(() {
+              if (controller.attendanceController.isHistoryLoading.value) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.blue[300]!),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              if (controller.attendanceController.attendanceHistory.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.history_toggle_off,
+                            size: 36, color: Colors.grey[400]),
+                        const SizedBox(height: 8),
+                        Text('Belum ada riwayat kehadiran',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey[600])),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Show most recent 3 attendance records
+              final historyToShow = controller
+                  .attendanceController.attendanceHistory
+                  .take(3)
+                  .toList();
+
+              return Column(
+                children: [
+                  ...historyToShow
+                      .map((item) => _buildHistoryItemNew(item, screenWidth)),
+                  if (controller.attendanceController.attendanceHistory.length >
+                      3)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Center(
+                        child: TextButton(
+                          onPressed: () {
+                            Get.to(() => const HistoryKerjaPage());
+                          },
+                          child: Text('Lihat Semua',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue[600],
+                                  fontWeight: FontWeight.w500)),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper widget to build history items for new API format
+  Widget _buildHistoryItemNew(Map<String, dynamic> item, double screenWidth) {
+    // Extract and format date
+    String date = item['tanggal'] ?? '';
+    try {
+      if (date.isNotEmpty) {
+        final parsedDate = DateTime.parse(date);
+        date = DateFormat('d MMM yyyy', 'id_ID').format(parsedDate);
+      }
+    } catch (e) {
+      print('Error parsing date: $e');
+    }
+
+    // Extract data from new API format
+    String shiftName = item['nama_shift'] ?? '';
+    String status = item['status'] ?? '';
+
+    // Determine if late based on status
+    bool isLate = status.toLowerCase().contains('terlambat');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          // Shift name
+          Expanded(
+            flex: 2,
+            child: Text(
+              shiftName,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          // Date
+          Expanded(
+            flex: 2,
+            child: Text(
+              date,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: Colors.grey[800],
+              ),
+            ),
+          ),
+          // Status
+          Expanded(
+            flex: 2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isLate ? Colors.orange[100] : Colors.green[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                status,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: isLate ? Colors.orange[700] : Colors.green[700],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -571,45 +870,6 @@ class HomePage extends GetView<HomeController> {
         ),
       ),
     );
-  }
-
-  // Updated to navigate to CategoryPage when clicked, just like in GudangPage
-  Widget _buildCategoryItem(String title, IconData icon) {
-    return InkWell(
-      onTap: () => _navigateToCategoryPage(title),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: Color(0xFF3A3A3A),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // New method to navigate to CategoryPage, similar to GudangPage
-  void _navigateToCategoryPage(String categoryName) {
-    // Navigate to CategoryPage
-    Get.to(() => CategoryPage(categoryName: categoryName));
   }
 
   Widget _buildProductItem(Product item) {

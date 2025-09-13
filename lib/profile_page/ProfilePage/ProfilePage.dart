@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../ProfileController/ProfileController.dart';
+import '../../attendance_page/AttendanceController.dart';
 
 class ProfilePage extends StatelessWidget {
   final ProfileController controller = Get.put(ProfileController());
+  final AttendanceController attendanceController =
+      Get.put(AttendanceController());
 
   ProfilePage({super.key});
 
@@ -20,6 +23,17 @@ class ProfilePage extends StatelessWidget {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
+            // Refresh radius location check first (if attendance controller is available)
+            try {
+              if (Get.isRegistered<AttendanceController>()) {
+                final attendanceController = Get.find<AttendanceController>();
+                await attendanceController.refreshLocation();
+              }
+            } catch (e) {
+              print('Error refreshing location: $e');
+            }
+
+            // Then refresh other data
             await controller.loadUserData();
             await controller.refreshAttendanceData();
           },
@@ -168,13 +182,6 @@ class ProfilePage extends StatelessWidget {
                         ),
                         _buildMenuItem(
                           context: context,
-                          icon: Icons.calendar_today,
-                          title: 'Pengaturan Cuti',
-                          onTap: () =>
-                              controller.goToFormLaporanKerjaPage(context),
-                        ),
-                        _buildMenuItem(
-                          context: context,
                           icon: Icons.logout,
                           title: 'Keluar',
                           onTap: () => _showLogoutConfirmation(context),
@@ -198,15 +205,47 @@ class ProfilePage extends StatelessWidget {
     required String title,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.white),
-      title: Text(
-        title,
-        style: const TextStyle(color: Colors.white),
-        overflow: TextOverflow.ellipsis,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: const Color(0xFFA9CD47),
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white54,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white),
-      onTap: onTap,
     );
   }
 

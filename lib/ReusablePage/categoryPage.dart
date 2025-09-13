@@ -5,6 +5,7 @@ import 'package:kliktoko/gudang_page/GudangModel/CategoryModel.dart';
 import 'package:kliktoko/gudang_page/GudangControllers/GudangController.dart';
 import 'package:kliktoko/ReusablePage/detailpage.dart';
 import 'package:kliktoko/gudang_page/GudangServices/CategoryService.dart';
+import 'package:kliktoko/attendance_page/AttendanceController.dart';
 
 class CategoryPage extends StatefulWidget {
   final String categoryName;
@@ -39,6 +40,16 @@ class _CategoryPageState extends State<CategoryPage> {
     });
 
     try {
+      // Refresh radius location check first (if attendance controller is available)
+      try {
+        if (Get.isRegistered<AttendanceController>()) {
+          final attendanceController = Get.find<AttendanceController>();
+          await attendanceController.refreshLocation();
+        }
+      } catch (e) {
+        print('Error refreshing location: $e');
+      }
+
       // First get the category object by name
       category = await _categoryService.getCategoryByName(widget.categoryName);
 

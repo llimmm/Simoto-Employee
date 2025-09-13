@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:kliktoko/gudang_page/GudangControllers/GudangController.dart';
 import 'package:kliktoko/ReusablePage/detailpage.dart'; // Corrected import casing
+import 'package:kliktoko/attendance_page/AttendanceController.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({Key? key}) : super(key: key);
@@ -18,6 +19,8 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   bool _isProcessingCode = false;
   MobileScannerController? _controller;
   final GudangController _gudangController = Get.find<GudangController>();
+  final AttendanceController _attendanceController =
+      Get.put(AttendanceController());
 
   @override
   void initState() {
