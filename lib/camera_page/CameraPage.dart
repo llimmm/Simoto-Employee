@@ -210,7 +210,9 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
             ),
             Icon(
               foundProduct != null ? Icons.check_circle : Icons.info_outline,
-              color: foundProduct != null ? Colors.green : Colors.orange,
+              color: foundProduct != null
+                  ? const Color(0xFF5753EA)
+                  : Colors.orange,
               size: 60,
             ),
             SizedBox(height: 20),
@@ -257,7 +259,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFA9CD47),
+                        color: const Color(0xFF5753EA),
                       ),
                     ),
                   ],

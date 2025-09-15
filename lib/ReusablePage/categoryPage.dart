@@ -86,8 +86,8 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Green color constant
-    final Color primaryGreen = Color(0xFFA9CD47);
+    // Purple color constant
+    final Color primaryPurple = const Color(0xFF5753EA);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -123,7 +123,7 @@ class _CategoryPageState extends State<CategoryPage> {
       body: isLoading
           ? Center(
               child: CircularProgressIndicator(
-                color: primaryGreen,
+                color: primaryPurple,
               ),
             )
           : errorMessage.isNotEmpty && categoryProducts.isEmpty
@@ -149,7 +149,7 @@ class _CategoryPageState extends State<CategoryPage> {
                       ElevatedButton(
                         onPressed: loadCategoryProducts,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
+                          backgroundColor: primaryPurple,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -185,7 +185,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     )
                   : RefreshIndicator(
                       onRefresh: loadCategoryProducts,
-                      color: primaryGreen,
+                      color: primaryPurple,
                       child: Padding(
                         padding: EdgeInsets.all(horizontalPadding),
                         child: Column(
@@ -245,7 +245,7 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget _buildProductItem(Product item) {
     final bool isOutOfStock = item.stock == 0;
     final bool isNew = item.isNew;
-    final Color primaryGreen = Color(0xFFA9CD47);
+    final Color primaryPurple = const Color(0xFF5753EA);
 
     return GestureDetector(
       onTap: () => _navigateToProductDetail(item),
@@ -285,7 +285,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                                 .cumulativeBytesLoaded /
                                             loadingProgress.expectedTotalBytes!
                                         : null,
-                                    color: primaryGreen,
+                                    color: primaryPurple,
                                     strokeWidth: 2,
                                   ),
                                 );
@@ -293,7 +293,7 @@ class _CategoryPageState extends State<CategoryPage> {
                               errorBuilder: (context, error, stackTrace) {
                                 print('Error loading image: $error');
                                 return Container(
-                                  color: primaryGreen.withOpacity(0.7),
+                                  color: primaryPurple.withOpacity(0.7),
                                   child: Center(
                                     child: Icon(
                                       Icons.checkroom,
@@ -311,7 +311,7 @@ class _CategoryPageState extends State<CategoryPage> {
                               height: double.infinity,
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
-                                  color: primaryGreen.withOpacity(0.7),
+                                  color: primaryPurple.withOpacity(0.7),
                                   child: Center(
                                     child: Icon(
                                       Icons.checkroom,

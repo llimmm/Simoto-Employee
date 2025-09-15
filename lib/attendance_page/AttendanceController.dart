@@ -120,7 +120,7 @@ class AttendanceController extends GetxController {
           'Sudah Absen',
           'Anda sudah absen hari ini',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFAED15C),
+          backgroundColor: const Color(0xFF5753EA),
           colorText: const Color(0xFF282828),
         );
         return;
@@ -196,7 +196,7 @@ class AttendanceController extends GetxController {
         message,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor:
-            isLate.value ? Colors.orange[300] : const Color(0xFFAED15C),
+            isLate.value ? Colors.orange[300] : const Color(0xFF5753EA),
         colorText: const Color(0xFF282828),
         duration: Duration(seconds: isLate.value ? 5 : 3),
       );
@@ -398,7 +398,7 @@ class AttendanceController extends GetxController {
           'Check-out Berhasil',
           'Anda telah berhasil melakukan check-out hari ini.',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green[400],
+          backgroundColor: const Color(0xFF5753EA),
           colorText: Colors.white,
           duration: Duration(seconds: 3),
           icon: Icon(
@@ -450,7 +450,7 @@ class AttendanceController extends GetxController {
           'Sudah Check-out',
           'Anda sudah melakukan check-out hari ini',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFAED15C),
+          backgroundColor: const Color(0xFF5753EA),
           colorText: const Color(0xFF282828),
         );
         return;
@@ -497,7 +497,7 @@ class AttendanceController extends GetxController {
         'Check-out Berhasil',
         'Terima kasih atas pekerjaan anda hari ini',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFAED15C),
+        backgroundColor: const Color(0xFF5753EA),
         colorText: const Color(0xFF282828),
       );
     } catch (e) {
@@ -543,7 +543,7 @@ class AttendanceController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFAED15C)),
+              valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF5753EA)),
             ),
             const SizedBox(height: 15),
             const Text('Memproses...'),

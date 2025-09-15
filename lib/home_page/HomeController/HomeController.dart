@@ -352,7 +352,7 @@ class HomeController extends GetxController {
     } else if (hasCheckedOut.value) {
       return Colors.blue.shade700;
     } else {
-      return Colors.green.shade700;
+      return const Color(0xFF5753EA);
     }
   }
 
@@ -427,7 +427,7 @@ class HomeController extends GetxController {
           'Already Checked In',
           'You have already checked in today',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFAED15C),
+          backgroundColor: const Color(0xFF5753EA),
           colorText: Colors.black,
         );
         return;
@@ -443,7 +443,8 @@ class HomeController extends GetxController {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFAED15C)),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(const Color(0xFF5753EA)),
                 ),
                 const SizedBox(height: 15),
                 const Text('Processing...'),
@@ -481,7 +482,7 @@ class HomeController extends GetxController {
         'Logout Berhasil',
         'Anda telah berhasil keluar dari aplikasi',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFAED15C),
+        backgroundColor: const Color(0xFF5753EA),
         colorText: const Color(0xFF282828),
         duration: const Duration(seconds: 2),
       );

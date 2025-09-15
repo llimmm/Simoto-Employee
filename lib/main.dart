@@ -11,6 +11,7 @@ import 'package:kliktoko/navigation/BottomNavBar.dart';
 import 'package:kliktoko/navigation/NavBindings.dart';
 import 'package:kliktoko/start.dart';
 import 'package:kliktoko/storage/storage_service.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Simoto Employee',
+      theme: AppTheme.lightTheme,
       initialRoute:
           '/', // Changed from '/start' to '/' to match the route definition
       getPages: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'NavController.dart';
+import '../theme/app_theme.dart';
 
 class FloatingBottomNavBar extends StatelessWidget {
   const FloatingBottomNavBar({Key? key}) : super(key: key);
@@ -24,8 +25,8 @@ class FloatingBottomNavBar extends StatelessWidget {
     final safeBottomPadding = bottomPadding > 0 ? bottomPadding + 15.0 : 25.0;
 
     return Scaffold(
-      // Light mint green background as shown in the reference image
-      backgroundColor: const Color(0xFFF1F9E9),
+      // Light purple background as shown in the reference image
+      backgroundColor: AppTheme.lightPurpleBackground,
 
       // Use resizeToAvoidBottomInset: false to prevent resizing when keyboard appears
       resizeToAvoidBottomInset: false,
@@ -116,7 +117,7 @@ class FloatingBottomNavBar extends StatelessWidget {
                         width: 54.0,
                         height: 54.0,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFB5DE42),
+                          color: const Color(0xFF5753EA),
                           shape: BoxShape.circle,
                           border: Border.all(
                             color:
@@ -136,7 +137,7 @@ class FloatingBottomNavBar extends StatelessWidget {
                         child: Container(
                           margin: const EdgeInsets.all(2.0),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFB5DE42),
+                            color: const Color(0xFF5753EA),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: Colors.black, // Black inner border too
@@ -182,7 +183,7 @@ class FloatingBottomNavBar extends StatelessWidget {
           height: buttonSize,
           decoration: BoxDecoration(
             color:
-                isSelected ? const Color(0xFFB5DE42) : const Color(0xFF303030),
+                isSelected ? const Color(0xFF5753EA) : const Color(0xFF303030),
             shape: BoxShape.circle,
             boxShadow: isSelected
                 ? [

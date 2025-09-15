@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:kliktoko/attendance_page/AttendanceController.dart';
+import '../../theme/app_theme.dart';
 
 class HistoryKerjaPage extends StatefulWidget {
   const HistoryKerjaPage({Key? key}) : super(key: key);
@@ -31,7 +32,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F9E9),
+      backgroundColor: AppTheme.lightPurpleBackground,
       appBar: AppBar(
         title: const Text(
           'Riwayat Kehadiran',
@@ -69,7 +70,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                         _getFilterIcon(option),
                         size: 18,
                         color: selectedFilter == option
-                            ? const Color(0xFFA9CD47)
+                            ? const Color(0xFF5753EA)
                             : Colors.grey.shade600,
                       ),
                       const SizedBox(width: 12),
@@ -77,7 +78,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                         option,
                         style: TextStyle(
                           color: selectedFilter == option
-                              ? const Color(0xFFA9CD47)
+                              ? const Color(0xFF5753EA)
                               : Colors.grey.shade800,
                           fontWeight: selectedFilter == option
                               ? FontWeight.w600
@@ -89,7 +90,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                         const Icon(
                           Icons.check,
                           size: 16,
-                          color: Color(0xFFA9CD47),
+                          color: const Color(0xFF5753EA),
                         ),
                       ],
                     ],
@@ -157,7 +158,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                 children: const [
                   CircularProgressIndicator(
                     valueColor:
-                        AlwaysStoppedAnimation<Color>(Color(0xFFA9CD47)),
+                        AlwaysStoppedAnimation<Color>(const Color(0xFF5753EA)),
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -190,7 +191,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
         // Then refresh attendance history
         await controller.attendanceController.loadAttendanceHistory();
       },
-      color: const Color(0xFFA9CD47),
+      color: const Color(0xFF5753EA),
       child: controller.attendanceController.attendanceHistory.isEmpty
           ? _buildEmptyState()
           : _buildHistoryList(context, controller),
@@ -266,13 +267,13 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFA9CD47).withOpacity(0.1),
+                  color: const Color(0xFF5753EA).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.filter_list,
                   size: 60,
-                  color: Color(0xFFA9CD47),
+                  color: const Color(0xFF5753EA),
                 ),
               ),
               const SizedBox(height: 24),
@@ -302,11 +303,11 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                     selectedFilter = 'Semua';
                   });
                 },
-                icon: const Icon(Icons.refresh, color: Color(0xFFA9CD47)),
+                icon: const Icon(Icons.refresh, color: const Color(0xFF5753EA)),
                 label: const Text(
                   'Lihat Semua Riwayat',
                   style: TextStyle(
-                    color: Color(0xFFA9CD47),
+                    color: const Color(0xFF5753EA),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -465,7 +466,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                       size: 20,
                       color: isLate
                           ? Colors.orange.shade600
-                          : const Color(0xFFA9CD47),
+                          : const Color(0xFF5753EA),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -496,7 +497,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                       decoration: BoxDecoration(
                         color: isLate
                             ? Colors.orange.withOpacity(0.1)
-                            : const Color(0xFFA9CD47).withOpacity(0.1),
+                            : const Color(0xFF5753EA).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -506,7 +507,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                           fontWeight: FontWeight.w600,
                           color: isLate
                               ? Colors.orange.shade700
-                              : const Color(0xFFA9CD47),
+                              : const Color(0xFF5753EA),
                         ),
                       ),
                     ),
@@ -593,7 +594,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                 children: [
                   const Icon(
                     Icons.history,
-                    color: Color(0xFFA9CD47),
+                    color: const Color(0xFF5753EA),
                     size: 24,
                   ),
                   const SizedBox(width: 12),
@@ -634,7 +635,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                     decoration: BoxDecoration(
                       color: isLate
                           ? Colors.orange.withOpacity(0.1)
-                          : const Color(0xFFA9CD47).withOpacity(0.1),
+                          : const Color(0xFF5753EA).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -644,7 +645,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                         fontWeight: FontWeight.w600,
                         color: isLate
                             ? Colors.orange.shade700
-                            : const Color(0xFFA9CD47),
+                            : const Color(0xFF5753EA),
                       ),
                     ),
                   ),
@@ -663,7 +664,7 @@ class _HistoryKerjaPageState extends State<HistoryKerjaPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFA9CD47),
+                    backgroundColor: const Color(0xFF5753EA),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(

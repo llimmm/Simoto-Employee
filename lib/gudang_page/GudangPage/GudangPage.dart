@@ -94,8 +94,8 @@ class _GudangPageState extends State<GudangPage>
     'Ukuran XXXL',
   ];
 
-  // Green color constant
-  final Color primaryGreen = Color(0xFFA9CD47);
+  // Purple color constant
+  final Color primaryPurple = const Color(0xFF5753EA);
 
   // Track if the dropdown menu is open
   OverlayEntry? _overlayEntry;
@@ -194,7 +194,7 @@ class _GudangPageState extends State<GudangPage>
                             option,
                             style: TextStyle(
                               color: controller.selectedFilter.value == option
-                                  ? primaryGreen
+                                  ? primaryPurple
                                   : Colors.black87,
                               fontSize: 14,
                               fontWeight:
@@ -288,7 +288,7 @@ class _GudangPageState extends State<GudangPage>
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: _refreshData,
-            color: primaryGreen,
+            color: primaryPurple,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
@@ -434,7 +434,7 @@ class _GudangPageState extends State<GudangPage>
                             if (controller.isCategoriesLoading) {
                               return Center(
                                 child: CircularProgressIndicator(
-                                  color: primaryGreen,
+                                  color: primaryPurple,
                                 ),
                               );
                             }
@@ -538,7 +538,7 @@ class _GudangPageState extends State<GudangPage>
                                 padding: EdgeInsets.symmetric(
                                     vertical: verticalPadding * 2),
                                 child: CircularProgressIndicator(
-                                  color: primaryGreen,
+                                  color: primaryPurple,
                                 ),
                               ),
                             );
@@ -569,7 +569,7 @@ class _GudangPageState extends State<GudangPage>
                                     ElevatedButton(
                                       onPressed: _refreshData,
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: primaryGreen,
+                                        backgroundColor: primaryPurple,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(8),
@@ -686,7 +686,7 @@ class _GudangPageState extends State<GudangPage>
           width: 30,
           child: Container(
             decoration: BoxDecoration(
-              color: primaryGreen,
+              color: primaryPurple,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -736,8 +736,8 @@ class _GudangPageState extends State<GudangPage>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      primaryGreen.withOpacity(0.8),
-                      primaryGreen.withOpacity(0.6),
+                      primaryPurple.withOpacity(0.8),
+                      primaryPurple.withOpacity(0.6),
                     ],
                   ),
                 ),
@@ -779,8 +779,8 @@ class _GudangPageState extends State<GudangPage>
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                       colors: [
-                                        primaryGreen.withOpacity(0.8),
-                                        primaryGreen.withOpacity(0.6),
+                                        primaryPurple.withOpacity(0.8),
+                                        primaryPurple.withOpacity(0.6),
                                       ],
                                     ),
                                   ),
@@ -930,7 +930,7 @@ class _GudangPageState extends State<GudangPage>
                     Text(
                       'Rp ${NumberFormat('#,###', 'id_ID').format(item.price)}',
                       style: TextStyle(
-                        color: primaryGreen,
+                        color: primaryPurple,
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1045,7 +1045,7 @@ class _GudangPageState extends State<GudangPage>
                                                 .cumulativeBytesLoaded /
                                             loadingProgress.expectedTotalBytes!
                                         : null,
-                                    color: primaryGreen,
+                                    color: primaryPurple,
                                     strokeWidth: 2,
                                   ),
                                 );
@@ -1058,8 +1058,8 @@ class _GudangPageState extends State<GudangPage>
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                       colors: [
-                                        primaryGreen.withOpacity(0.8),
-                                        primaryGreen.withOpacity(0.6),
+                                        primaryPurple.withOpacity(0.8),
+                                        primaryPurple.withOpacity(0.6),
                                       ],
                                     ),
                                   ),
@@ -1079,8 +1079,8 @@ class _GudangPageState extends State<GudangPage>
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
-                                    primaryGreen.withOpacity(0.8),
-                                    primaryGreen.withOpacity(0.6),
+                                    primaryPurple.withOpacity(0.8),
+                                    primaryPurple.withOpacity(0.6),
                                   ],
                                 ),
                               ),
@@ -1273,17 +1273,17 @@ class _GudangPageState extends State<GudangPage>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: primaryGreen.withOpacity(0.1),
+                        color: primaryPurple.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: primaryGreen.withOpacity(0.3),
+                          color: primaryPurple.withOpacity(0.3),
                           width: 1,
                         ),
                       ),
                       child: Text(
                         'Size: ${item.size}',
                         style: TextStyle(
-                          color: primaryGreen,
+                          color: primaryPurple,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1297,14 +1297,14 @@ class _GudangPageState extends State<GudangPage>
                       children: [
                         Icon(
                           Icons.attach_money,
-                          color: primaryGreen,
+                          color: primaryPurple,
                           size: 14,
                         ),
                         const SizedBox(width: 2),
                         Text(
                           'Rp ${NumberFormat('#,###', 'id_ID').format(item.price)}',
                           style: TextStyle(
-                            color: primaryGreen,
+                            color: primaryPurple,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),

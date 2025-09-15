@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kliktoko/gudang_page/GudangModel/ProductModel.dart';
-import 'package:kliktoko/APIService/ApiService.dart';
 import 'package:kliktoko/gudang_page/GudangControllers/GudangController.dart';
 
 class ProductDetailPage extends StatelessWidget {
@@ -49,7 +48,7 @@ class ProductDetailPage extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.green.shade800,
+        color: const Color(0xFF5753EA),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -70,8 +69,8 @@ class ProductDetailPage extends StatelessWidget {
     final bool isOutOfStock = product.stock == 0;
 
     // Primary colors
-    final Color primaryGreen = Color(0xFFA9CD47);
-    final Color primaryBg = Color(0xFFF1F9E9);
+    final Color primaryPurple = const Color(0xFF5753EA);
+    final Color primaryBg = const Color(0xFFF5F4FF);
 
     return Scaffold(
       backgroundColor: primaryBg,
@@ -116,7 +115,7 @@ class ProductDetailPage extends StatelessWidget {
                           errorBuilder: (context, error, stackTrace) {
                             print('Error loading image: $error');
                             return Container(
-                              color: primaryGreen.withOpacity(0.3),
+                              color: primaryPurple.withOpacity(0.3),
                               child: Center(
                                 child: Icon(
                                   Icons.checkroom,
@@ -135,13 +134,13 @@ class ProductDetailPage extends StatelessWidget {
                                     ? loadingProgress.cumulativeBytesLoaded /
                                         loadingProgress.expectedTotalBytes!
                                     : null,
-                                color: primaryGreen,
+                                color: primaryPurple,
                               ),
                             );
                           },
                         )
                       : Container(
-                          color: primaryGreen.withOpacity(0.3),
+                          color: primaryPurple.withOpacity(0.3),
                           child: Center(
                             child: Icon(
                               Icons.checkroom,
@@ -235,7 +234,7 @@ class ProductDetailPage extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: primaryGreen,
+                          color: primaryPurple,
                         ),
                       ),
                       Container(
@@ -267,7 +266,7 @@ class ProductDetailPage extends StatelessWidget {
                         isOutOfStock
                             ? Icons.inventory_2_outlined
                             : Icons.inventory_2,
-                        color: isOutOfStock ? Colors.red : primaryGreen,
+                        color: isOutOfStock ? Colors.red : primaryPurple,
                         size: 20,
                       ),
                       SizedBox(width: 8),

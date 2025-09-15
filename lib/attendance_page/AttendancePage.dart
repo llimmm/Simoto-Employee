@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kliktoko/attendance_page/AttendanceController.dart';
 import 'package:kliktoko/camera_page/AttendanceCameraPage.dart';
-import 'package:kliktoko/profile_page/ProfilePage/HistoryKerjaPage.dart';
 import 'package:intl/intl.dart';
 import 'package:kliktoko/attendance_page/ShiftModel.dart';
 
@@ -170,12 +169,12 @@ class AttendancePage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: controller.isWithinRadius.value
-                      ? Colors.green.withOpacity(0.1)
+                      ? const Color(0xFF5753EA).withOpacity(0.1)
                       : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: controller.isWithinRadius.value
-                        ? Colors.green
+                        ? const Color(0xFF5753EA)
                         : Colors.red,
                     width: 1,
                   ),
@@ -188,7 +187,7 @@ class AttendancePage extends StatelessWidget {
                           ? Icons.location_on
                           : Icons.location_off,
                       color: controller.isWithinRadius.value
-                          ? Colors.green
+                          ? const Color(0xFF5753EA)
                           : Colors.red,
                       size: 14,
                     ),
@@ -197,7 +196,7 @@ class AttendancePage extends StatelessWidget {
                       controller.locationStatus.value,
                       style: TextStyle(
                         color: controller.isWithinRadius.value
-                            ? Colors.green
+                            ? const Color(0xFF5753EA)
                             : Colors.red,
                         fontWeight: FontWeight.w500,
                         fontSize: 11,
@@ -254,7 +253,7 @@ class AttendancePage extends StatelessWidget {
                           statusColor = Colors.orange[700];
                         } else {
                           statusText = 'Anda Sedang Aktif';
-                          statusColor = Colors.green[700];
+                          statusColor = const Color(0xFF5753EA);
                         }
                       } else {
                         // Gunakan pesan dari API atau pesan default
@@ -373,12 +372,12 @@ class AttendancePage extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isActive
-                            ? const Color(0xFFE8F5E8)
+                            ? const Color(0xFFE8E7FF)
                             : Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isActive
-                              ? const Color(0xFFA9CD47)
+                              ? const Color(0xFF5753EA)
                               : Colors.grey[300]!,
                           width: isActive ? 2 : 1,
                         ),
@@ -390,7 +389,7 @@ class AttendancePage extends StatelessWidget {
                             height: 8,
                             decoration: BoxDecoration(
                               color: isActive
-                                  ? const Color(0xFFA9CD47)
+                                  ? const Color(0xFF5753EA)
                                   : Colors.grey[400],
                               shape: BoxShape.circle,
                             ),
@@ -406,7 +405,7 @@ class AttendancePage extends StatelessWidget {
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: isActive
-                                        ? const Color(0xFFA9CD47)
+                                        ? const Color(0xFF5753EA)
                                         : Colors.grey[800],
                                   ),
                                 ),
@@ -416,7 +415,7 @@ class AttendancePage extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isActive
-                                        ? const Color(0xFFA9CD47)
+                                        ? const Color(0xFF5753EA)
                                         : Colors.grey[600],
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -429,7 +428,7 @@ class AttendancePage extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFA9CD47),
+                                color: const Color(0xFF5753EA),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Text(

@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../attendance_page/AttendanceApiService.dart';
 import '../attendance_page/SharedAttendanceController.dart';
+import '../theme/app_theme.dart';
 
 class AttendanceCameraPage extends StatefulWidget {
   final String shiftId;
@@ -30,10 +31,10 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
       SharedAttendanceController.to;
 
   // Color scheme based on app theme
-  final Color primaryGreen = const Color(0xFFA9CD47);
-  final Color darkGreen = const Color(0xFF282828);
-  final Color lightGreen = const Color(0xFFF1F9E9);
-  final Color accentGreen = const Color(0xFFAED15C);
+  final Color primaryPurple = const Color(0xFF5753EA);
+  final Color darkPurple = const Color(0xFF282828);
+  final Color lightPurple = const Color(0xFFF5F4FF);
+  final Color accentPurple = const Color(0xFF7B78F5);
 
   @override
   void initState() {
@@ -203,7 +204,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
         'Check-in Successful',
         'Your attendance has been recorded',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: accentGreen,
+        backgroundColor: accentPurple,
         colorText: Colors.black,
       );
     } catch (e) {
@@ -238,7 +239,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: lightGreen,
+      backgroundColor: lightPurple,
       appBar: AppBar(
         title: const Text(
           'Foto Absensi',
@@ -248,7 +249,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
             fontSize: 18,
           ),
         ),
-        backgroundColor: darkGreen,
+        backgroundColor: darkPurple,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -262,7 +263,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
               child: IconButton(
                 icon: Icon(
                   _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                  color: _isFlashOn ? primaryGreen : Colors.white,
+                  color: _isFlashOn ? primaryPurple : Colors.white,
                   size: 24,
                 ),
                 onPressed: _toggleFlash,
@@ -292,7 +293,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
 
   Widget _buildLoadingUI() {
     return Container(
-      color: lightGreen,
+      color: lightPurple,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -313,14 +314,14 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
               child: Column(
                 children: [
                   CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(primaryGreen),
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryPurple),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Menyiapkan Kamera...',
                     style: TextStyle(
                       fontSize: 16,
-                      color: darkGreen,
+                      color: darkPurple,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -335,7 +336,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
 
   Widget _buildPermissionDeniedUI() {
     return Container(
-      color: lightGreen,
+      color: lightPurple,
       child: Center(
         child: Container(
           margin: const EdgeInsets.all(24),
@@ -372,7 +373,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: darkGreen,
+                  color: darkPurple,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -392,7 +393,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                 child: ElevatedButton(
                   onPressed: _requestCameraPermission,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
+                    backgroundColor: primaryPurple,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -418,7 +419,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
 
   Widget _buildCameraUI() {
     return Container(
-      color: lightGreen,
+      color: lightPurple,
       child: Column(
         children: [
           // Header info
@@ -446,7 +447,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                   children: [
                     Icon(
                       Icons.camera_alt,
-                      color: primaryGreen,
+                      color: primaryPurple,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -455,7 +456,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: darkGreen,
+                        color: darkPurple,
                       ),
                     ),
                   ],
@@ -499,7 +500,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: primaryGreen.withOpacity(0.8),
+                            color: primaryPurple.withOpacity(0.8),
                             width: 3,
                           ),
                           borderRadius: BorderRadius.circular(16),
@@ -552,10 +553,10 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                     height: 70,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _isProcessing ? Colors.grey : primaryGreen,
+                      color: _isProcessing ? Colors.grey : primaryPurple,
                       boxShadow: [
                         BoxShadow(
-                          color: primaryGreen.withOpacity(0.3),
+                          color: primaryPurple.withOpacity(0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -593,23 +594,23 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: primaryGreen,
+            color: primaryPurple,
             width: 3,
           ),
           left: BorderSide(
-            color: primaryGreen,
+            color: primaryPurple,
             width: 3,
           ),
           right: isLeft
               ? BorderSide.none
               : BorderSide(
-                  color: primaryGreen,
+                  color: primaryPurple,
                   width: 3,
                 ),
           bottom: isTop
               ? BorderSide.none
               : BorderSide(
-                  color: primaryGreen,
+                  color: primaryPurple,
                   width: 3,
                 ),
         ),
@@ -619,7 +620,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
 
   Widget _buildImagePreviewUI() {
     return Container(
-      color: lightGreen,
+      color: lightPurple,
       child: Column(
         children: [
           // Header info
@@ -647,7 +648,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                   children: [
                     Icon(
                       Icons.check_circle,
-                      color: primaryGreen,
+                      color: primaryPurple,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -656,7 +657,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: darkGreen,
+                        color: darkPurple,
                       ),
                     ),
                   ],
@@ -713,7 +714,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                     onPressed: _isProcessing ? null : _retakePicture,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey.shade300,
-                      foregroundColor: darkGreen,
+                      foregroundColor: darkPurple,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -744,7 +745,7 @@ class _AttendanceCameraPageState extends State<AttendanceCameraPage>
                   child: ElevatedButton(
                     onPressed: _isProcessing ? null : _checkInWithPhoto,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryGreen,
+                      backgroundColor: primaryPurple,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

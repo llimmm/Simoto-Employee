@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../gudang_page/GudangModel/ProductModel.dart';
 import 'package:kliktoko/profile_page/ProfilePage/HistoryKerjaPage.dart'; // Added import for HistoryKerjaPage
 import '../../../APIService/ApiService.dart';
+import '../../theme/app_theme.dart';
 
 // Create a separate controller just for the clock
 class ClockController extends GetxController {
@@ -30,7 +31,8 @@ class ClockController extends GetxController {
     // Start timer to update every second
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTime());
     // Start timer to refresh from API every 5 minutes
-    _apiRefreshTimer = Timer.periodic(const Duration(minutes: 5), (_) => _updateTimeFromAPI());
+    _apiRefreshTimer =
+        Timer.periodic(const Duration(minutes: 5), (_) => _updateTimeFromAPI());
   }
 
   @override
@@ -62,20 +64,21 @@ class ClockController extends GetxController {
       errorMessage.value = '';
 
       final response = await _apiService.getCurrentTimezone();
-      
+
       if (response['success'] == true && response['data'] != null) {
         final data = response['data'];
         final currentTime = data['current_time'];
-        
+
         if (currentTime != null) {
           // Parse the API time
           _lastApiTime = DateTime.parse(currentTime);
           _apiTimeOffset = 0; // Reset offset
-          
+
           // Update display immediately
           timeString.value = DateFormat('HH:mm:ss').format(_lastApiTime!);
-          dateString.value = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_lastApiTime!);
-          
+          dateString.value =
+              DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_lastApiTime!);
+
           print('Updated time from API: $currentTime');
         }
       } else {
@@ -127,7 +130,8 @@ class ClockWidget extends StatelessWidget {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[600]!),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Colors.grey[600]!),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -141,7 +145,7 @@ class ClockWidget extends StatelessWidget {
                 ],
               );
             }
-            
+
             return Text(
               controller.timeString.value,
               style: const TextStyle(
@@ -200,7 +204,7 @@ class HomePage extends GetView<HomeController> {
     });
     return Scaffold(
         backgroundColor:
-            const Color(0xFFF1F9E9), // Light green background color
+            AppTheme.lightPurpleBackground, // Light purple background color
         body: SafeArea(
           child: ConstrainedBox(
             constraints: BoxConstraints(
@@ -211,7 +215,8 @@ class HomePage extends GetView<HomeController> {
               onRefresh: () async {
                 // Refresh time from API first
                 try {
-                  final clockController = Get.find<ClockController>(tag: 'clock');
+                  final clockController =
+                      Get.find<ClockController>(tag: 'clock');
                   await clockController.refreshTime();
                 } catch (e) {
                   print('Error refreshing time: $e');
@@ -236,7 +241,7 @@ class HomePage extends GetView<HomeController> {
                 }
                 return;
               },
-              color: const Color(0xFFA9CD47),
+              color: const Color(0xFF5753EA),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(
@@ -335,12 +340,12 @@ class HomePage extends GetView<HomeController> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: controller.attendanceController.isWithinRadius.value
-                      ? Colors.green.withOpacity(0.1)
+                      ? const Color(0xFF5753EA).withOpacity(0.1)
                       : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: controller.attendanceController.isWithinRadius.value
-                        ? Colors.green
+                        ? const Color(0xFF5753EA)
                         : Colors.red,
                     width: 1,
                   ),
@@ -354,7 +359,7 @@ class HomePage extends GetView<HomeController> {
                           : Icons.location_off,
                       color:
                           controller.attendanceController.isWithinRadius.value
-                              ? Colors.green
+                              ? const Color(0xFF5753EA)
                               : Colors.red,
                       size: 14,
                     ),
@@ -364,7 +369,7 @@ class HomePage extends GetView<HomeController> {
                       style: TextStyle(
                         color:
                             controller.attendanceController.isWithinRadius.value
-                                ? Colors.green
+                                ? const Color(0xFF5753EA)
                                 : Colors.red,
                         fontWeight: FontWeight.w500,
                         fontSize: 11,
@@ -440,13 +445,13 @@ class HomePage extends GetView<HomeController> {
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Row(
                   children: [
-                    Icon(Icons.login, size: 14, color: Colors.green[600]),
+                    Icon(Icons.login, size: 14, color: const Color(0xFF5753EA)),
                     const SizedBox(width: 4),
                     Text(
                       'Check-in: ${controller.attendanceController.currentAttendance.value.checkInTime}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.green[600],
+                        color: const Color(0xFF5753EA),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -647,7 +652,7 @@ class HomePage extends GetView<HomeController> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: isLate ? Colors.orange[100] : Colors.green[100],
+                color: isLate ? Colors.orange[100] : const Color(0xFFE8E7FF),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -655,7 +660,7 @@ class HomePage extends GetView<HomeController> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: isLate ? Colors.orange[700] : Colors.green[700],
+                  color: isLate ? Colors.orange[700] : const Color(0xFF5753EA),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -699,8 +704,8 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget _buildOutOfStockSection(double screenWidth, double screenHeight) {
-    // Primary green color
-    final Color primaryGreen = Color(0xFFA9CD47);
+    // Primary purple color
+    final Color primaryPurple = const Color(0xFF5753EA);
 
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
@@ -746,7 +751,7 @@ class HomePage extends GetView<HomeController> {
                         TextButton(
                           onPressed: () => Get.offAllNamed('/login'),
                           style: TextButton.styleFrom(
-                            backgroundColor: primaryGreen,
+                            backgroundColor: primaryPurple,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
                             shape: RoundedRectangleBorder(
@@ -768,7 +773,7 @@ class HomePage extends GetView<HomeController> {
               if (controller.isLoading.value) {
                 return Center(
                   child: CircularProgressIndicator(
-                    color: primaryGreen,
+                    color: primaryPurple,
                   ),
                 );
               }
@@ -797,7 +802,7 @@ class HomePage extends GetView<HomeController> {
                   ...outOfStockItems.map((item) => _buildProductItem(item)),
                   SizedBox(width: screenWidth * 0.03),
                   if (controller.outOfStockProducts.length > 3)
-                    _buildMoreButton(primaryGreen),
+                    _buildMoreButton(primaryPurple),
                 ],
               );
             }),
@@ -822,7 +827,7 @@ class HomePage extends GetView<HomeController> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFA9CD47)),
+            border: Border.all(color: const Color(0xFF5753EA)),
             borderRadius: BorderRadius.circular(20),
           ),
           child: TextButton(
@@ -836,10 +841,12 @@ class HomePage extends GetView<HomeController> {
               children: const [
                 Text(
                   'Lihat gudang',
-                  style: TextStyle(color: Color(0xFFA9CD47), fontSize: 12),
+                  style:
+                      TextStyle(color: const Color(0xFF5753EA), fontSize: 12),
                 ),
                 SizedBox(width: 4),
-                Icon(Icons.arrow_forward, color: Color(0xFFA9CD47), size: 12),
+                Icon(Icons.arrow_forward,
+                    color: const Color(0xFF5753EA), size: 12),
               ],
             ),
           ),
@@ -848,7 +855,7 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
-  Widget _buildMoreButton(Color primaryGreen) {
+  Widget _buildMoreButton(Color primaryPurple) {
     return SizedBox(
       width: 35,
       height: 100, // Match the height of product cards
@@ -857,7 +864,7 @@ class HomePage extends GetView<HomeController> {
           height: 30,
           width: 30,
           decoration: BoxDecoration(
-            color: primaryGreen,
+            color: primaryPurple,
             shape: BoxShape.circle,
           ),
           child: const Center(
@@ -873,8 +880,8 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget _buildProductItem(Product item) {
-    // Primary green color
-    final Color primaryGreen = Color(0xFFA9CD47);
+    // Primary purple color
+    final Color primaryPurple = const Color(0xFF5753EA);
 
     return Container(
       width: 100,
@@ -888,7 +895,7 @@ class HomePage extends GetView<HomeController> {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: primaryGreen,
+                color: primaryPurple,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: item.image != null && item.image!.isNotEmpty

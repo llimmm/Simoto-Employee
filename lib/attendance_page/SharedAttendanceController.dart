@@ -466,7 +466,7 @@ class SharedAttendanceController extends GetxController {
           'Check-out Berhasil',
           'Anda telah berhasil melakukan check-out hari ini.',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green[400],
+          backgroundColor: const Color(0xFF5753EA),
           colorText: Colors.white,
           duration: Duration(seconds: 3),
           icon: Icon(

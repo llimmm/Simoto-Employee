@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../ProfileController/ProfileController.dart';
 import '../../attendance_page/AttendanceController.dart';
+import '../../theme/app_theme.dart';
 
 class ProfilePage extends StatelessWidget {
   final ProfileController controller = Get.put(ProfileController());
@@ -19,7 +20,7 @@ class ProfilePage extends StatelessWidget {
     final avatarRadius = screenWidth * 0.125;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEFF5E9),
+      backgroundColor: AppTheme.lightPurpleBackground,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -37,7 +38,7 @@ class ProfilePage extends StatelessWidget {
             await controller.loadUserData();
             await controller.refreshAttendanceData();
           },
-          color: const Color(0xFFAED15C),
+          color: const Color(0xFF5753EA),
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Padding(
@@ -63,7 +64,7 @@ class ProfilePage extends StatelessWidget {
                       children: [
                         Obx(() => CircleAvatar(
                               radius: avatarRadius,
-                              backgroundColor: const Color(0xFFA9CD47),
+                              backgroundColor: const Color(0xFF5753EA),
                               child: Text(
                                 controller.username.value.isNotEmpty
                                     ? controller.username.value[0].toUpperCase()
@@ -99,7 +100,7 @@ class ProfilePage extends StatelessWidget {
                                 children: [
                                   const Icon(
                                     Icons.calendar_month_outlined,
-                                    color: Color(0xFFA9CD47),
+                                    color: const Color(0xFF5753EA),
                                     size: 20,
                                   ),
                                   const SizedBox(width: 12),
@@ -121,7 +122,7 @@ class ProfilePage extends StatelessWidget {
                                               controller
                                                   .totalShiftsPerMonth.value,
                                               style: const TextStyle(
-                                                color: Color(0xFFA9CD47),
+                                                color: const Color(0xFF5753EA),
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16,
                                               ),
@@ -136,7 +137,7 @@ class ProfilePage extends StatelessWidget {
                                 children: [
                                   const Icon(
                                     Icons.badge_outlined,
-                                    color: Color(0xFFA9CD47),
+                                    color: const Color(0xFF5753EA),
                                     size: 20,
                                   ),
                                   const SizedBox(width: 12),
@@ -157,7 +158,7 @@ class ProfilePage extends StatelessWidget {
                                         Obx(() => Text(
                                               controller.userRole.value,
                                               style: const TextStyle(
-                                                color: Color(0xFFA9CD47),
+                                                color: const Color(0xFF5753EA),
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16,
                                               ),
@@ -222,7 +223,7 @@ class ProfilePage extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: const Color(0xFFA9CD47),
+                  color: const Color(0xFF5753EA),
                   size: 20,
                 ),
                 const SizedBox(width: 12),
